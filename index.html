@@ -121,6 +121,8 @@
             padding: 10px;
             border-radius: 8px;
             transition: all 0.3s ease;
+            draggable: true;
+            cursor: move;
         }
 
         .image-container:hover {
@@ -302,27 +304,28 @@
 
         .upload-progress {
             margin-top: 10px;
+            display: none;
         }
 
         .progress-bar {
             height: 4px;
-            background: #eee;
+            background: var(--progress-bg);
             border-radius: 2px;
             overflow: hidden;
-            margin-bottom: 5px;
         }
 
         .progress-inner {
             height: 100%;
-            background: #3498db;
+            background: var(--button-primary);
             width: 0;
             transition: width 0.3s ease;
         }
 
         .progress-text {
             font-size: 12px;
-            color: #666;
+            color: var(--secondary-text);
             text-align: center;
+            margin-top: 5px;
         }
 
         .dragover {
@@ -752,6 +755,113 @@
                 font-size: 16px;
             }
         }
+
+        /* 基础按钮样式优化 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            gap: 6px;
+            min-height: 36px;
+            min-width: 80px;
+            color: white;
+        }
+
+        /* 主要按钮 */
+        .btn-primary {
+            background: var(--button-primary);
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: var(--button-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        /* 危险按钮 */
+        .btn-danger {
+            background: var(--button-delete);
+            box-shadow: 0 2px 4px rgba(231, 76, 60, 0.2);
+        }
+
+        .btn-danger:hover {
+            background: var(--button-delete-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        /* 按钮图标 */
+        .btn-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        /* 按钮组样式 */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        /* 小型按钮 */
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+            min-height: 32px;
+            min-width: 60px;
+        }
+
+        /* 按钮加载状态 */
+        .btn.loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: button-loading 0.6s linear infinite;
+        }
+
+        @keyframes button-loading {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .button-group {
+                gap: 8px;
+            }
+
+            .btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+        }
+
+        /* 触摸设备优化 */
+        @media (hover: none) {
+            .btn:active {
+                transform: scale(0.98);
+            }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -788,6 +898,36 @@
         <input style="flex:1;margin-bottom:0" type="text" id="text" placeholder="请输入文字" autocomplete="off">
     </div>
 
+    <div class="align-center-box">
+        <label>水印布局设置</label>
+        <div style="flex:1;display:flex;flex-wrap:wrap;gap:20px;">
+            <div>
+                <label for="watermarkPattern">布局方式</label>
+                <select id="watermarkPattern" style="padding:8px;border-radius:4px;border:1px solid var(--border-color);background:var(--input-bg);color:var(--text-color);">
+                    <option value="tile">平铺模式</option>
+                    <option value="single">单个水印</option>
+                    <option value="custom">自定义数量</option>
+                </select>
+            </div>
+            
+            <div id="customPatternControls" style="display:none;">
+                <label for="watermarkCount">水印数量</label>
+                <input type="number" id="watermarkCount" min="1" max="100" value="1" style="width:80px;padding:8px;border-radius:4px;border:1px solid var(--border-color);background:var(--input-bg);color:var(--text-color);">
+            </div>
+            
+            <div id="positionControls" style="display:none;">
+                <label for="watermarkPosition">位置</label>
+                <select id="watermarkPosition" style="padding:8px;border-radius:4px;border:1px solid var(--border-color);background:var(--input-bg);color:var(--text-color);">
+                    <option value="center">居中</option>
+                    <option value="top-left">左上角</option>
+                    <option value="top-right">右上角</option>
+                    <option value="bottom-left">左下角</option>
+                    <option value="bottom-right">右下角</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     <p class="align-center-box">
 
         <label for="color">颜色</label>
@@ -812,8 +952,14 @@
 
     <label for="text">第三步：点击图片进行单个图片下载</label>
     <div class="button-group">
-        <button class="download-all-btn" onclick="downloadAll()">下载全部</button>
-        <button class="delete-all-btn" onclick="deleteAll()">删除全部</button>
+        <button class="btn btn-primary" onclick="downloadAll()">
+            <span class="btn-icon">⬇️</span>
+            <span>下载全部</span>
+        </button>
+        <button class="btn btn-danger" onclick="deleteAll()">
+            <span class="btn-icon">🗑️</span>
+            <span>删除全部</span>
+        </button>
     </div>
     <p id="graph"></p>
     <footer style="text-align: center; margin-top: 30px; padding: 20px 0; color: #666; font-size: 14px; border-top: 1px solid #eee;">
@@ -832,7 +978,7 @@
         return document.querySelector(sel);
     };
 
-    inputItems = ['text', 'color', 'alpha', 'space', 'size', 'rotate'];
+    inputItems = ['text', 'color', 'alpha', 'space', 'size', 'rotate', 'watermarkPattern', 'watermarkCount', 'watermarkPosition'];
 
     configInputSetting = {}; // 保存所有水印
     allCanvas = []; // 保存所有的canvas
@@ -913,7 +1059,19 @@
         
         var fileReader = new FileReader;
         
+        // 添加进度监听
+        fileReader.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const progress = (e.loaded / e.total) * 100;
+                progressBar.style.width = progress + '%';
+                progressText.textContent = `读取进度: ${Math.round(progress)}%`;
+            }
+        };
+        
         fileReader.onload = function () {
+            progressBar.style.width = '100%';
+            progressText.textContent = '正在处理图片...';
+            
             var img = new Image;
             img.onload = function () {
                 var ctx;
@@ -998,7 +1156,6 @@
                 graph.appendChild(container);
                 graph.classList.remove('empty');
                 
-                progressBar.style.width = '100%';
                 progressText.textContent = '处理完成';
                 setTimeout(() => {
                     uploadProgress.style.display = 'none';
@@ -1030,53 +1187,107 @@
             return;
         }
 
-        // 保存当前状态
-        textCtx.save();
+        const pattern = configInputSetting.watermarkPattern.value;
+        const position = configInputSetting.watermarkPosition.value;
+        const count = parseInt(configInputSetting.watermarkCount.value) || 1;
         
-        // 移动坐标原点到画布中心
-        textCtx.translate(canvas.width/2, canvas.height/2);
-        
-        // 在中心点进行旋转
-        textCtx.rotate(configInputSetting.rotate.value * Math.PI / 180);
-        
-        // 计算旋转后需要覆盖的矩形范围
+        // 计算文字大小和样式
         const diagonal = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
         const textSize = configInputSetting.size.value * Math.max(15, diagonal / 25);
-        
+        textCtx.font = `bold ${textSize}px -apple-system,"Helvetica Neue",Helvetica,Arial,"PingFang SC","Hiragino Sans GB","WenQuanYi Micro Hei",sans-serif`;
         textCtx.fillStyle = makeStyle();
-        textCtx.font = 'bold ' + textSize +
-            'px -apple-system,"Helvetica Neue",Helvetica,Arial,"PingFang SC","Hiragino Sans GB","WenQuanYi Micro Hei",sans-serif';
         
-        const width = textCtx.measureText(configInputSetting.text.value).width;
+        const text = configInputSetting.text.value;
+        const textWidth = textCtx.measureText(text).width;
+        const textHeight = textSize;
         const margin = textCtx.measureText('啊').width;
+        const angle = parseFloat(configInputSetting.rotate.value);
         
-        // 计算需要绘制的范围
-        const rectWidth = diagonal;
-        const rectHeight = diagonal;
-        
-        // 计算起始位置，使字从左上角开始填充
-        const startX = -rectWidth/2;
-        const startY = -rectHeight/2;
-        
-        // 计算水印间距
-        const xStep = width + margin;
-        const yStep = configInputSetting.space.value * textSize;
-        
-        // 计算需要重复的次数
-        const cols = Math.ceil(rectWidth / xStep);
-        const rows = Math.ceil(rectHeight / yStep);
-        
-        // 制水印
-        for (let i = 0; i <= cols; i++) {
-            for (let j = 0; j <= rows; j++) {
-                const x = startX + i * xStep;
-                const y = startY + j * yStep;
-                textCtx.fillText(configInputSetting.text.value, x, y);
+        // 绘制单个水印的函数
+        const drawSingleWatermark = (x, y, angle) => {
+            textCtx.save();
+            textCtx.translate(x, y);
+            textCtx.rotate(angle * Math.PI / 180);
+            textCtx.fillText(text, -textWidth/2, textHeight/2);
+            textCtx.restore();
+        };
+
+        if (pattern === 'tile') {
+            // 平铺模式 - 保持原有的平铺逻辑
+            textCtx.save();
+            textCtx.translate(canvas.width/2, canvas.height/2);
+            textCtx.rotate(angle * Math.PI / 180);
+            
+            const xStep = textWidth + margin;
+            const yStep = configInputSetting.space.value * textSize;
+            const rectWidth = diagonal;
+            const rectHeight = diagonal;
+            const startX = -rectWidth/2;
+            const startY = -rectHeight/2;
+            
+            const cols = Math.ceil(rectWidth / xStep);
+            const rows = Math.ceil(rectHeight / yStep);
+            
+            for (let i = 0; i <= cols; i++) {
+                for (let j = 0; j <= rows; j++) {
+                    const x = startX + i * xStep;
+                    const y = startY + j * yStep;
+                    textCtx.fillText(text, x, y);
+                }
             }
+            textCtx.restore();
+        } else {
+            // 单个水印或自定义数量模式
+            const positions = [];
+            const padding = Math.min(canvas.width, canvas.height) * 0.1; // 边距为画布较小边的10%
+            
+            if (pattern === 'single' || count === 1) {
+                // 单个水印位置计算
+                switch(position) {
+                    case 'center':
+                        positions.push([canvas.width/2, canvas.height/2]);
+                        break;
+                    case 'top-left':
+                        positions.push([padding + textWidth/2, padding + textHeight/2]);
+                        break;
+                    case 'top-right':
+                        positions.push([canvas.width - padding - textWidth/2, padding + textHeight/2]);
+                        break;
+                    case 'bottom-left':
+                        positions.push([padding + textWidth/2, canvas.height - padding - textHeight/2]);
+                        break;
+                    case 'bottom-right':
+                        positions.push([canvas.width - padding - textWidth/2, canvas.height - padding - textHeight/2]);
+                        break;
+                }
+            } else {
+                // 自定义数量水印的均匀分布
+                const area = canvas.width * canvas.height;
+                const spacing = Math.sqrt(area / count); // 计算水印间距
+                
+                const cols = Math.ceil(Math.sqrt(count * canvas.width / canvas.height));
+                const rows = Math.ceil(count / cols);
+                
+                const xStep = (canvas.width - 2 * padding) / (cols - 1 || 1);
+                const yStep = (canvas.height - 2 * padding) / (rows - 1 || 1);
+                
+                let currentCount = 0;
+                for (let i = 0; i < cols && currentCount < count; i++) {
+                    for (let j = 0; j < rows && currentCount < count; j++) {
+                        positions.push([
+                            padding + i * xStep,
+                            padding + j * yStep
+                        ]);
+                        currentCount++;
+                    }
+                }
+            }
+            
+            // 绘制所有水印
+            positions.forEach(([x, y]) => {
+                drawSingleWatermark(x, y, angle);
+            });
         }
-        
-        // 恢复画布状态
-        textCtx.restore();
     };
 
     // 添加支持的图片类型配置
@@ -1235,21 +1446,24 @@
 
     // 修改下载全部函数
     function downloadAll() {
+        const btn = document.querySelector('.btn-primary');
         if (allCanvas.length === 0) {
             alert('没有可下载的图片');
             return;
         }
 
+        btn.classList.add('loading');
+        
         // 检查是否加载了 JSZip
         if (typeof JSZip === 'undefined') {
             alert('正在加载必要组件，请稍后再试');
+            btn.classList.remove('loading');
             return;
         }
 
         const zip = new JSZip();
         
-        // 使用 Promise.all 处理所有图片
-        Promise.all(allCanvas.map((item, index) => {
+        Promise.all(allCanvas.map((item) => {
             return new Promise((resolve) => {
                 item.canvas.toBlob((blob) => {
                     let fileName = item.fileName.replace(/\.[^/.]+$/, "") + '.png';
@@ -1258,7 +1472,6 @@
                 }, 'image/png');
             });
         })).then(() => {
-            // 生成并下载 zip
             zip.generateAsync({type: 'blob'})
                 .then(function(content) {
                     const link = document.createElement('a');
@@ -1268,10 +1481,12 @@
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(link.href);
+                    btn.classList.remove('loading');
                 })
                 .catch(function(error) {
                     console.error('生成 zip 文件失败:', error);
                     alert('下载失败，请重试');
+                    btn.classList.remove('loading');
                 });
         });
     }
@@ -1332,6 +1547,149 @@
     document.addEventListener('DOMContentLoaded', () => {
         initTouchEvents();
         // 现有的 DOMContentLoaded 代码...
+    });
+
+    // 添加粘贴上传功能
+    document.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const items = e.clipboardData.items;
+        
+        for (let item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                const file = item.getAsFile();
+                if (isImageTypeSupported(file)) {
+                    readFile(file);
+                } else {
+                    const supportedFormats = Object.values(SUPPORTED_IMAGE_TYPES).flat().join('、');
+                    alert(`不支持的图片格式。支持的格式：${supportedFormats}`);
+                }
+            }
+        }
+    });
+
+    // 添加图片计数功能
+    function updateImageCount() {
+        const countElement = document.getElementById('imageCount');
+        if (!countElement) {
+            const container = document.querySelector('.upload-container');
+            const countDiv = document.createElement('div');
+            countDiv.id = 'imageCount';
+            countDiv.style.marginTop = '10px';
+            countDiv.style.fontSize = '14px';
+            countDiv.style.color = 'var(--secondary-text)';
+            container.appendChild(countDiv);
+        }
+        const count = allCanvas.length;
+        document.getElementById('imageCount').textContent = 
+            `已选择 ${count} 张图片${count > 0 ? '，可以拖动图片调整顺序' : ''}`;
+    }
+
+    // 添加拖拽排序功能
+    function initDragSort() {
+        const graph = document.getElementById('graph');
+        let draggedItem = null;
+        
+        graph.addEventListener('dragstart', (e) => {
+            if (e.target.closest('.image-container')) {
+                draggedItem = e.target.closest('.image-container');
+                e.target.style.opacity = '0.5';
+            }
+        });
+        
+        graph.addEventListener('dragend', (e) => {
+            if (e.target.closest('.image-container')) {
+                e.target.style.opacity = '1';
+            }
+        });
+        
+        graph.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const container = e.target.closest('.image-container');
+            if (container && container !== draggedItem) {
+                const rect = container.getBoundingClientRect();
+                const midpoint = rect.x + rect.width / 2;
+                if (e.clientX < midpoint) {
+                    container.style.borderLeft = '3px solid var(--button-primary)';
+                    container.style.borderRight = '';
+                } else {
+                    container.style.borderRight = '3px solid var(--button-primary)';
+                    container.style.borderLeft = '';
+                }
+            }
+        });
+        
+        graph.addEventListener('dragleave', (e) => {
+            const container = e.target.closest('.image-container');
+            if (container) {
+                container.style.borderLeft = '';
+                container.style.borderRight = '';
+            }
+        });
+        
+        graph.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const container = e.target.closest('.image-container');
+            if (container && draggedItem) {
+                const rect = container.getBoundingClientRect();
+                const midpoint = rect.x + rect.width / 2;
+                const insertAfter = e.clientX > midpoint;
+                
+                if (insertAfter) {
+                    container.parentNode.insertBefore(draggedItem, container.nextSibling);
+                } else {
+                    container.parentNode.insertBefore(draggedItem, container);
+                }
+                
+                // 更新 allCanvas 数组顺序
+                const newOrder = [...graph.children].map(child => {
+                    return allCanvas.find(item => item.canvas === child.querySelector('canvas'));
+                });
+                allCanvas.length = 0;
+                allCanvas.push(...newOrder);
+            }
+            
+            // 清除所有边框样式
+            graph.querySelectorAll('.image-container').forEach(container => {
+                container.style.borderLeft = '';
+                container.style.borderRight = '';
+            });
+        });
+    }
+
+    // 在页面加载完成后初始化拖拽排序
+    document.addEventListener('DOMContentLoaded', () => {
+        initDragSort();
+        // ... 其他初始化代码 ...
+    });
+
+    // 添加布局方式切换的事件监听
+    document.addEventListener('DOMContentLoaded', () => {
+        const patternSelect = document.getElementById('watermarkPattern');
+        const customControls = document.getElementById('customPatternControls');
+        const positionControls = document.getElementById('positionControls');
+        
+        patternSelect.addEventListener('change', () => {
+            const pattern = patternSelect.value;
+            customControls.style.display = pattern === 'custom' ? 'block' : 'none';
+            positionControls.style.display = pattern === 'single' ? 'block' : 'none';
+            
+            // 更新所有画布
+            allCanvas.forEach(({canvas, img}) => {
+                drawText(canvas, img);
+            });
+        });
+        
+        // 初始化其他控件的事件监听
+        ['watermarkCount', 'watermarkPosition'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', () => {
+                    allCanvas.forEach(({canvas, img}) => {
+                        drawText(canvas, img);
+                    });
+                });
+            }
+        });
     });
 </script>
 
