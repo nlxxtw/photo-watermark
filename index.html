@@ -656,7 +656,7 @@
                 <div class="upload-hint">
                     <i class="upload-icon">📁</i>
                     <p>点击或拖拽图片到此处上传</p>
-                    <p class="upload-tip">支持 jpg、png、gif 格式</p>
+                    <p class="upload-tip">支持 jpg、jpeg、png、gif、webp、bmp、ico 格式</p>
                 </div>
             </div>
             <div id="uploadProgress" class="upload-progress" style="display: none;">
@@ -963,12 +963,38 @@
         textCtx.restore();
     };
 
+    // 添加支持的图片类型配置
+    const SUPPORTED_IMAGE_TYPES = {
+        'image/jpeg': ['jpg', 'jpeg'],
+        'image/png': ['png'],
+        'image/gif': ['gif'],
+        'image/webp': ['webp'],
+        'image/bmp': ['bmp'],
+        'image/x-icon': ['ico'],
+        'image/vnd.microsoft.icon': ['ico']
+    };
+
+    // 检查文件类型是否支持
+    function isImageTypeSupported(file) {
+        return Object.keys(SUPPORTED_IMAGE_TYPES).includes(file.type);
+    }
+
+    // 获取文件扩展名
+    function getFileExtension(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        for (const [mimeType, extensions] of Object.entries(SUPPORTED_IMAGE_TYPES)) {
+            if (extensions.includes(ext)) {
+                return ext;
+            }
+        }
+        return null;
+    }
+
     image.addEventListener('change', function () {
-        // 处理批量图片
         const batchFileHandler = function (file) {
-            const type = file.type;
-            if (!['image/png', 'image/jpeg', 'image/gif'].includes(type)) {
-                return alert('仅支持 png, jpg, gif 图片格式');
+            if (!isImageTypeSupported(file)) {
+                const supportedFormats = Object.values(SUPPORTED_IMAGE_TYPES).flat().join('、');
+                return alert(`不支持的图片格式。支持的格式：${supportedFormats}`);
             }
             readFile(file);
         };
@@ -1013,9 +1039,9 @@
         
         const files = [...e.dataTransfer.files];
         files.forEach(file => {
-            const type = file.type;
-            if (!['image/png', 'image/jpeg', 'image/gif'].includes(type)) {
-                return alert('仅支持 png, jpg, gif 图片格式');
+            if (!isImageTypeSupported(file)) {
+                const supportedFormats = Object.values(SUPPORTED_IMAGE_TYPES).flat().join('、');
+                return alert(`不支持的图片格式。支持的格式：${supportedFormats}`);
             }
             readFile(file);
         });
@@ -1066,9 +1092,9 @@
         
         const files = [...e.dataTransfer.files];
         files.forEach(file => {
-            const type = file.type;
-            if (!['image/png', 'image/jpeg', 'image/gif'].includes(type)) {
-                return alert('仅支持 png, jpg, gif 图片格式');
+            if (!isImageTypeSupported(file)) {
+                const supportedFormats = Object.values(SUPPORTED_IMAGE_TYPES).flat().join('、');
+                return alert(`不支持的图片格式。支持的格式：${supportedFormats}`);
             }
             readFile(file);
         });
@@ -1106,7 +1132,7 @@
 
         const zip = new JSZip();
         
-        // 使用 Promise.all ��理所有图片
+        // 使用 Promise.all 处理所有图片
         Promise.all(allCanvas.map((item, index) => {
             return new Promise((resolve) => {
                 item.canvas.toBlob((blob) => {
@@ -1155,7 +1181,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         const savedTheme = localStorage.getItem('theme');
         const themeIcon = document.querySelector('.theme-icon');
-        
+
         if (savedTheme === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
             themeIcon.textContent = '🌙';
