@@ -215,16 +215,146 @@
         .delete-btn:hover {
             background: #c0392b;
         }
+
+        /* 添加拖拽相关的样式 */
+        .drag-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .drag-area.dragover {
+            border-color: #3498db;
+            background: #ebf5fb;
+        }
+
+        .drag-area::after {
+            content: '拖拽图片到此处上传';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            color: #666;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .drag-area.empty::after {
+            opacity: 1;
+        }
+
+        #graph:empty {
+            min-height: 200px;
+        }
+
+        .upload-container {
+            flex: 1;
+        }
+
+        .upload-box {
+            position: relative;
+            min-height: 120px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .upload-box:hover {
+            border-color: #3498db;
+            background: #ebf5fb;
+        }
+
+        .upload-box input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-hint {
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .upload-tip {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .upload-progress {
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #eee;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .progress-inner {
+            height: 100%;
+            background: #3498db;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .dragover {
+            border-color: #3498db;
+            background: #ebf5fb;
+            transform: scale(1.02);
+        }
     </style>
 </head>
 <div id="container">
     <h1>离线照片水印打码工具</h1>
-    <article>安全地为你的图片加水印，无任何网络请求，利用浏览器api实现水印，特别适合各种敏感证件（身份证，驾照，护照等）。<a
+    <article>安全地为你的图片加水印，无任何网络请求，利用浏览器api实现水印，特别适合各种敏感证（身份证，驾照，护照等）。<a
             href="https://github.com/cuijianzhuang/photo-watermark">Github地址，求 star</a></article>
 
-    <div class="align-center-box">
-        <label for="image">第一步：先选择本地图片(可多选)</label>
-        <input type="file" id="image" autocomplete="off" multiple>
+    <div class="align-center-box upload-area">
+        <label>第一步：选择图片上传</label>
+        <div class="upload-container">
+            <div class="upload-box drag-area">
+                <input type="file" id="image" autocomplete="off" multiple>
+                <div class="upload-hint">
+                    <i class="upload-icon">📁</i>
+                    <p>点击或拖拽图片到此处上传</p>
+                    <p class="upload-tip">支持 jpg、png、gif 格式</p>
+                </div>
+            </div>
+            <div id="uploadProgress" class="upload-progress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-inner"></div>
+                </div>
+                <div class="progress-text">正在处理图片...</div>
+            </div>
+        </div>
     </div>
     <div class="align-center-box">
         <label for="text">第二步：输入需要打水印的文字</label>
@@ -304,7 +434,8 @@
             }
         };
         d = new Date;
-        const timeStr = '' + d.getFullYear() + '-' + (pad(d.getMonth() + 1)) + '-' + (pad(d.getDate())) + ' ' + (
+        const timeStr = '' + d.getFullYear() + '-' + (pad(d.getMonth() + 1)) + '-' + (pad(d
+            .getDate())) + ' ' + (
             pad(d
                 .getHours())) + (pad(d.getMinutes())) + (pad(d.getSeconds()))
         return fileName + '_' + timeStr + '.png';
@@ -342,19 +473,21 @@
         });
     };
     readFile = function (file) {
-        var fileReader;
-        if (file == null) {
-            return;
-        }
+        const progressBar = $('.progress-inner');
+        const progressText = $('.progress-text');
+        const uploadProgress = $('#uploadProgress');
         
-        // const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-        // if(file.size > MAX_SIZE) {
-        //     return alert('图片大小不能超过5MB');
-        // }
-        //
-        fileReader = new FileReader;
-        fileReader.onerror = function() {
-            alert('图片读取失败');
+        uploadProgress.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = '正在处理图片...';
+        
+        var fileReader = new FileReader;
+        
+        fileReader.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const progress = (e.loaded / e.total) * 100;
+                progressBar.style.width = progress + '%';
+            }
         };
         
         fileReader.onload = function () {
@@ -431,6 +564,11 @@
                     }
                     // 从DOM中移除
                     container.remove();
+                    
+                    // 如果没有图片了，恢复空状态
+                    if (graph.children.length === 0) {
+                        graph.classList.add('empty');
+                    }
                 };
                 
                 buttonGroup.appendChild(downloadBtn);
@@ -442,12 +580,26 @@
                 // 添加到网格中
                 graph.appendChild(container);
                 
+                // 移除空状态
+                graph.classList.remove('empty');
+                
                 // 移除原来的点击事件
                 // canvas.addEventListener('click', () => downloadCanvasAsImage(canvas, file.name));
             };
+            progressBar.style.width = '100%';
+            progressText.textContent = '处理完成';
+            setTimeout(() => {
+                uploadProgress.style.display = 'none';
+            }, 1000);
             return img.src = fileReader.result;
         };
-        return fileReader.readAsDataURL(file);
+        fileReader.onerror = function() {
+            progressText.textContent = '图片处理失败';
+            progressBar.style.background = '#e74c3c';
+            alert('图片读取失败');
+        };
+        
+        fileReader.readAsDataURL(file);
     };
 
     const makeStyle = () => {
@@ -541,22 +693,25 @@
 
     const container = $('#container');
 
+    // 添加空状态类
+    graph.classList.add('drag-area', 'empty');
+
     container.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        container.style.border = '2px dashed #3498db';
+        graph.classList.add('dragover');
     });
 
     container.addEventListener('dragleave', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        container.style.border = 'none';
+        graph.classList.remove('dragover');
     });
 
     container.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        container.style.border = 'none';
+        graph.classList.remove('dragover');
         
         const files = [...e.dataTransfer.files];
         files.forEach(file => {
@@ -585,6 +740,35 @@
     // 阻止图片点击事件冒泡
     previewImage.addEventListener('click', (e) => {
         e.stopPropagation();
+    });
+
+    const uploadBox = $('.upload-box');
+
+    uploadBox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadBox.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadBox.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadBox.classList.remove('dragover');
+        
+        const files = [...e.dataTransfer.files];
+        files.forEach(file => {
+            const type = file.type;
+            if (!['image/png', 'image/jpeg', 'image/gif'].includes(type)) {
+                return alert('仅支持 png, jpg, gif 图片格式');
+            }
+            readFile(file);
+        });
     });
 </script>
 
