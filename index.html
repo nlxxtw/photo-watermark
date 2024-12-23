@@ -350,9 +350,299 @@
         .delete-all-btn:hover {
             background: #c0392b;
         }
+
+        /* 添加深色主题样式 */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #2c3e50;
+            --container-bg: #fff;
+            --border-color: #ddd;
+            --box-bg: #f8f9fa;
+            --shadow-color: rgba(0,0,0,0.1);
+            --link-color: #3498db;
+            --secondary-text: #666;
+            --upload-border: #ddd;
+            --upload-hover-bg: #ebf5fb;
+            --progress-bg: #eee;
+            --button-primary: #3498db;
+            --button-hover: #2980b9;
+            --button-delete: #e74c3c;
+            --button-delete-hover: #c0392b;
+            --input-bg: #ffffff;
+            --input-border: #ddd;
+            --input-color: #2c3e50;
+            --range-bg: #ddd;
+            --range-active: #3498db;
+            --drag-border: #ddd;
+            --drag-hover-bg: #ebf5fb;
+            --canvas-border: #ddd;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --container-bg: #2d2d2d;
+            --border-color: #404040;
+            --box-bg: #333333;
+            --shadow-color: rgba(0,0,0,0.3);
+            --link-color: #5dade2;
+            --secondary-text: #999;
+            --upload-border: #404040;
+            --upload-hover-bg: #3d3d3d;
+            --progress-bg: #404040;
+            --button-primary: #2980b9;
+            --button-hover: #3498db;
+            --button-delete: #c0392b;
+            --button-delete-hover: #e74c3c;
+            --input-bg: #333333;
+            --input-border: #404040;
+            --input-color: #e0e0e0;
+            --range-bg: #404040;
+            --range-active: #2980b9;
+            --drag-border: #404040;
+            --drag-hover-bg: #3d3d3d;
+            --canvas-border: #404040;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease;
+        }
+
+        #container {
+            background: var(--container-bg);
+            box-shadow: 0 2px 12px var(--shadow-color);
+        }
+
+        .align-center-box {
+            background: var(--box-bg);
+        }
+
+        input[type="file"], 
+        input[type="text"] {
+            background: var(--container-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .image-container {
+            background: var(--box-bg);
+        }
+
+        /* 主题切换按钮样式 */
+        .theme-switch {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .theme-switch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        .theme-icon {
+            font-size: 18px;
+        }
+
+        article {
+            color: var(--secondary-text);
+        }
+
+        article a {
+            color: var(--link-color);
+        }
+
+        .upload-box {
+            border-color: var(--upload-border);
+            background: var(--box-bg);
+        }
+
+        .upload-box:hover {
+            border-color: var(--link-color);
+            background: var(--upload-hover-bg);
+        }
+
+        .upload-tip {
+            color: var(--secondary-text);
+        }
+
+        .progress-bar {
+            background: var(--progress-bg);
+        }
+
+        .progress-inner {
+            background: var(--button-primary);
+        }
+
+        .progress-text {
+            color: var(--secondary-text);
+        }
+
+        button {
+            background: var(--button-primary);
+            color: white;
+        }
+
+        button:hover {
+            background: var(--button-hover);
+        }
+
+        .delete-btn {
+            background: var(--button-delete);
+        }
+
+        .delete-btn:hover {
+            background: var(--button-delete-hover);
+        }
+
+        .delete-all-btn {
+            background: var(--button-delete);
+        }
+
+        .delete-all-btn:hover {
+            background: var(--button-delete-hover);
+        }
+
+        .image-info {
+            color: var(--secondary-text);
+        }
+
+        .drag-area::after {
+            color: var(--secondary-text);
+        }
+
+        .dragover {
+            border-color: var(--link-color);
+            background: var(--upload-hover-bg);
+        }
+
+        canvas {
+            border-color: var(--border-color);
+        }
+
+        canvas:hover {
+            border-color: var(--link-color);
+        }
+
+        footer {
+            color: var(--secondary-text);
+            border-top-color: var(--border-color);
+        }
+
+        footer a {
+            color: var(--link-color);
+        }
+
+        #previewModal {
+            background: rgba(0,0,0,0.9);
+        }
+
+        /* 添加新的样式规则 */
+        input[type="color"] {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+        }
+
+        input[type="range"] {
+            background: var(--range-bg);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            background: var(--range-active);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            background: var(--range-active);
+        }
+
+        .drag-area {
+            border-color: var(--drag-border);
+            background: var(--box-bg);
+        }
+
+        .drag-area.dragover {
+            border-color: var(--link-color);
+            background: var(--drag-hover-bg);
+        }
+
+        canvas {
+            border: 2px dashed var(--canvas-border);
+        }
+
+        h1 {
+            color: var(--text-color);
+        }
+
+        label {
+            color: var(--text-color);
+        }
+
+        .upload-hint p {
+            color: var(--text-color);
+        }
+
+        .theme-switch {
+            color: var(--text-color);
+        }
+
+        .theme-text {
+            color: var(--text-color);
+        }
+
+        /* 修改预览模态框样式 */
+        #previewModal {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        #previewImage {
+            background: var(--container-bg);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        /* 调整滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--box-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-text);
+        }
+
+        /* 调整选中文本的颜色 */
+        ::selection {
+            background: var(--button-primary);
+            color: white;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
+<button class="theme-switch" onclick="toggleTheme()">
+    <span class="theme-icon">🌞</span>
+    <span class="theme-text">切换主题</span>
+</button>
 <div id="container">
     <h1>离线照片水印打码工具</h1>
     <article>安全地为你的图片加水印，无任何网络请求，利用浏览器api实现水印，特别适合各种敏感证（身份证，驾照，护照等）。<a
@@ -816,7 +1106,7 @@
 
         const zip = new JSZip();
         
-        // 使用 Promise.all 处理所有图片
+        // 使用 Promise.all ��理所有图片
         Promise.all(allCanvas.map((item, index) => {
             return new Promise((resolve) => {
                 item.canvas.toBlob((blob) => {
@@ -843,6 +1133,34 @@
                 });
         });
     }
+
+    // 添加主题切换功能
+    function toggleTheme() {
+        const html = document.documentElement;
+        const themeIcon = document.querySelector('.theme-icon');
+        const currentTheme = html.getAttribute('data-theme');
+        
+        if (currentTheme === 'dark') {
+            html.removeAttribute('data-theme');
+            themeIcon.textContent = '🌞';
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.setAttribute('data-theme', 'dark');
+            themeIcon.textContent = '🌙';
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+
+    // 页面加载时检查主题设置
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedTheme = localStorage.getItem('theme');
+        const themeIcon = document.querySelector('.theme-icon');
+        
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeIcon.textContent = '🌙';
+        }
+    });
 </script>
 
 </html>
