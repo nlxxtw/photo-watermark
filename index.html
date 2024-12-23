@@ -330,7 +330,28 @@
             background: #ebf5fb;
             transform: scale(1.02);
         }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .delete-all-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .delete-all-btn:hover {
+            background: #c0392b;
+        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <div id="container">
     <h1>离线照片水印打码工具</h1>
@@ -384,7 +405,10 @@
     </p>
 
     <label for="text">第三步：点击图片进行单个图片下载</label>
-    <button onclick="downloadAllPic()">下载全部</button>
+    <div class="button-group">
+        <button class="download-all-btn" onclick="downloadAll()">下载全部</button>
+        <button class="delete-all-btn" onclick="deleteAll()">删除全部</button>
+    </div>
     <p id="graph"></p>
     <footer style="text-align: center; margin-top: 30px; padding: 20px 0; color: #666; font-size: 14px; border-top: 1px solid #eee;">
         <p>© 2024 离线照片水印打码工具 | 作者：<a href="https://github.com/cuijianzhuang" style="color: #3498db; text-decoration: none;">cuijianzhuang</a></p>
@@ -759,6 +783,66 @@
             readFile(file);
         });
     });
+
+    // 添加删除所有照片的函数
+    function deleteAll() {
+        if (allCanvas.length === 0) {
+            alert('没有可删除的图片');
+            return;
+        }
+        
+        if (confirm('确定要删除所有图片吗？')) {
+            // 清空数组
+            allCanvas.length = 0;
+            // 清空显示区域
+            const graph = document.getElementById('graph');
+            graph.innerHTML = '';
+            graph.classList.add('empty');
+        }
+    }
+
+    // 修改下载全部函数
+    function downloadAll() {
+        if (allCanvas.length === 0) {
+            alert('没有可下载的图片');
+            return;
+        }
+
+        // 检查是否加载了 JSZip
+        if (typeof JSZip === 'undefined') {
+            alert('正在加载必要组件，请稍后再试');
+            return;
+        }
+
+        const zip = new JSZip();
+        
+        // 使用 Promise.all 处理所有图片
+        Promise.all(allCanvas.map((item, index) => {
+            return new Promise((resolve) => {
+                item.canvas.toBlob((blob) => {
+                    let fileName = item.fileName.replace(/\.[^/.]+$/, "") + '.png';
+                    zip.file(fileName, blob);
+                    resolve();
+                }, 'image/png');
+            });
+        })).then(() => {
+            // 生成并下载 zip
+            zip.generateAsync({type: 'blob'})
+                .then(function(content) {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(content);
+                    link.download = '水印图片_' + new Date().getTime() + '.zip';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                })
+                .catch(function(error) {
+                    console.error('生成 zip 文件失败:', error);
+                    alert('下载失败，请重试');
+                });
+        });
+    }
 </script>
 
 </html>
