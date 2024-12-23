@@ -143,6 +143,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 10px;
+        }
+
+        .image-info span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .download-btn {
@@ -199,6 +206,14 @@
         
         #previewModal.active #previewImage {
             transform: scale(1) translateZ(0);
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
         }
     </style>
 </head>
@@ -396,11 +411,31 @@
                 sizeSpan.textContent = `${(file.size / 1024).toFixed(1)}KB`;
                 infoDiv.appendChild(sizeSpan);
                 
+                const buttonGroup = document.createElement('div');
+                buttonGroup.style.display = 'flex';
+                buttonGroup.style.gap = '5px';
+                
                 const downloadBtn = document.createElement('button');
                 downloadBtn.className = 'download-btn';
                 downloadBtn.textContent = '下载';
                 downloadBtn.onclick = () => downloadCanvasAsImage(canvas, file.name);
-                infoDiv.appendChild(downloadBtn);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'download-btn delete-btn';
+                deleteBtn.textContent = '删除';
+                deleteBtn.onclick = () => {
+                    // 从数组中移除
+                    const index = allCanvas.findIndex(item => item.canvas === canvas);
+                    if (index > -1) {
+                        allCanvas.splice(index, 1);
+                    }
+                    // 从DOM中移除
+                    container.remove();
+                };
+                
+                buttonGroup.appendChild(downloadBtn);
+                buttonGroup.appendChild(deleteBtn);
+                infoDiv.appendChild(buttonGroup);
                 
                 container.appendChild(infoDiv);
                 
