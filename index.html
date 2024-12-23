@@ -8,7 +8,7 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, minimum-scale=1" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>离线照片水印打码工具</title>
     <style>
@@ -636,6 +636,122 @@
             background: var(--button-primary);
             color: white;
         }
+
+        /* 移动端基础样式优化 */
+        @media (max-width: 768px) {
+            #container {
+                margin: 10px;
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 22px;
+                margin-bottom: 15px;
+            }
+
+            article {
+                font-size: 14px;
+                margin-bottom: 20px;
+            }
+
+            .align-center-box {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 12px;
+            }
+
+            label {
+                margin-bottom: 8px;
+                margin-right: 0;
+            }
+
+            input[type="text"] {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .button-group button {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            /* 调整主题切换按钮位置 */
+            .theme-switch {
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+
+            /* 优化图片网格布局 */
+            #graph {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            /* 调整上传框大小 */
+            .upload-box {
+                min-height: 100px;
+            }
+
+            .upload-icon {
+                font-size: 24px;
+            }
+
+            /* 优化控制条布局 */
+            input[type="range"] {
+                width: 100%;
+                margin: 10px 0;
+            }
+
+            /* 调整预览模态框 */
+            #previewModal {
+                padding: 10px;
+            }
+
+            #previewImage {
+                max-width: 100%;
+                max-height: 90vh;
+            }
+        }
+
+        /* 添加触摸设备的优化 */
+        @media (hover: none) {
+            .image-container canvas {
+                cursor: default;
+            }
+
+            .upload-box:hover {
+                transform: none;
+            }
+
+            button:active {
+                transform: scale(0.98);
+            }
+
+            .theme-switch:active {
+                transform: scale(0.95);
+            }
+        }
+
+        /* 优化触摸操作区域 */
+        button, 
+        input[type="file"],
+        .theme-switch {
+            min-height: 44px;
+        }
+
+        /* 防止iOS缩放 */
+        @supports (-webkit-touch-callout: none) {
+            input[type="color"],
+            input[type="range"] {
+                font-size: 16px;
+            }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -1186,6 +1302,36 @@
             document.documentElement.setAttribute('data-theme', 'dark');
             themeIcon.textContent = '🌙';
         }
+    });
+
+    // 优化移动端触摸体验
+    function initTouchEvents() {
+        // 防止双击缩放
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (event) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // 优化触摸反馈
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(button => {
+            button.addEventListener('touchstart', () => {
+                button.style.transform = 'scale(0.98)';
+            });
+            button.addEventListener('touchend', () => {
+                button.style.transform = 'none';
+            });
+        });
+    }
+
+    // 页面加载完成后初始化触摸事件
+    document.addEventListener('DOMContentLoaded', () => {
+        initTouchEvents();
+        // 现有的 DOMContentLoaded 代码...
     });
 </script>
 
