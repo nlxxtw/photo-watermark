@@ -18,12 +18,14 @@
             background: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
         }
 
         #graph {
             display: grid;
             grid-gap: 20px;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            margin-top: 20px;
         }
 
         h1 {
@@ -105,9 +107,55 @@
             font-size: 15px;
             cursor: pointer;
             transition: background 0.3s ease;
+            margin-left: 10px;
         }
 
         button:hover {
+            background: #2980b9;
+        }
+
+        .image-container {
+            position: relative;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .image-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .image-container canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0;
+            border: 1px solid #eee;
+        }
+
+        .image-info {
+            padding: 10px 0 0;
+            font-size: 13px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .download-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .download-btn:hover {
             background: #2980b9;
         }
     </style>
@@ -143,6 +191,9 @@
         <label for="size">字号</label>
         <input style="flex:1;margin-right:30px" type="range" id="size" min="0.5" max="3" step="0.05" autocomplete="off"
             value="0.8">
+
+        <label for="rotate">旋转角度</label>
+        <input style="flex:1;margin-right:30px" type="range" id="rotate" min="0" max="360" step="5" autocomplete="off" value="45"><br>
     </p>
 
     <label for="text">第三步：点击图片进行单个图片下载</label>
@@ -157,7 +208,7 @@
         return document.querySelector(sel);
     };
 
-    inputItems = ['text', 'color', 'alpha', 'space', 'size'];
+    inputItems = ['text', 'color', 'alpha', 'space', 'size', 'rotate'];
 
     configInputSetting = {}; // 保存所有水印
     allCanvas = []; // 保存所有的canvas
@@ -217,20 +268,31 @@
         }, 10);
     }
     const downloadAllPic = async () => {
-        allCanvas.forEach(({
-            canvas,
-            img,
-            fileName
-        }) => {
-            downloadCanvasAsImage(canvas, fileName);
-        })
-    }
+        if (allCanvas.length === 0) {
+            return alert('请先添加图片');
+        }
+        allCanvas.forEach(({canvas, fileName}) => {
+            setTimeout(() => {
+                downloadCanvasAsImage(canvas, fileName);
+            }, 100); // 添加少许延迟，避免浏览器同时触发太多下载
+        });
+    };
     readFile = function (file) {
         var fileReader;
         if (file == null) {
             return;
         }
+        
+        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+        if(file.size > MAX_SIZE) {
+            return alert('图片大小不能超过5MB');
+        }
+        
         fileReader = new FileReader;
+        fileReader.onerror = function() {
+            alert('图片读取失败');
+        };
+        
         fileReader.onload = function () {
             var img;
             img = new Image;
@@ -249,9 +311,39 @@
                 });
 
                 drawText(canvas, img);
-                graph.appendChild(canvas);
-
-                return canvas.addEventListener('click', () => downloadCanvasAsImage(canvas, file.name));
+                
+                // 创建图片容器
+                const container = document.createElement('div');
+                container.className = 'image-container';
+                
+                // 添加画布
+                container.appendChild(canvas);
+                
+                // 添加图片信息和下载按钮
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'image-info';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = file.name;
+                infoDiv.appendChild(nameSpan);
+                
+                const sizeSpan = document.createElement('span');
+                sizeSpan.textContent = `${(file.size / 1024).toFixed(1)}KB`;
+                infoDiv.appendChild(sizeSpan);
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-btn';
+                downloadBtn.textContent = '下载';
+                downloadBtn.onclick = () => downloadCanvasAsImage(canvas, file.name);
+                infoDiv.appendChild(downloadBtn);
+                
+                container.appendChild(infoDiv);
+                
+                // 添加到网格中
+                graph.appendChild(container);
+                
+                // 移除原来的点击事件
+                // canvas.addEventListener('click', () => downloadCanvasAsImage(canvas, file.name));
             };
             return img.src = fileReader.result;
         };
@@ -267,30 +359,58 @@
 
     const drawText = (canvas, img) => {
         redrawCanvas(canvas, img);
-        var i, j, margin, step, textSize, width, x, y, _i, _j, textCtx;
+        var textCtx = canvas.getContext('2d');
         if (canvas == null) {
             return;
         }
 
-        textSize = configInputSetting.size.value * Math.max(15, (Math.min(canvas.width, canvas.height)) / 25);
-        textCtx = canvas.getContext('2d');
-        //!TODO 倾斜角度 
-        textCtx.rotate(45 * Math.PI / 180);
+        // 保存当前状态
+        textCtx.save();
+        
+        // 移动坐标原点到画布中心
+        textCtx.translate(canvas.width/2, canvas.height/2);
+        
+        // 在中心点进行旋转
+        textCtx.rotate(configInputSetting.rotate.value * Math.PI / 180);
+        
+        // 计算旋转后需要覆盖的矩形范围
+        const diagonal = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
+        const textSize = configInputSetting.size.value * Math.max(15, diagonal / 25);
+        
         textCtx.fillStyle = makeStyle();
         textCtx.font = 'bold ' + textSize +
             'px -apple-system,"Helvetica Neue",Helvetica,Arial,"PingFang SC","Hiragino Sans GB","WenQuanYi Micro Hei",sans-serif';
-        width = (textCtx.measureText(configInputSetting.text.value)).width;
-        step = Math.sqrt((Math.pow(canvas.width, 2)) + (Math.pow(canvas.height, 2)));
-        margin = (textCtx.measureText('啊')).width;
-        x = Math.ceil(step / (width + margin));
-        y = Math.ceil((step / (configInputSetting.space.value * textSize)) / 2);
-
-        for (i = _i = 0; 0 <= x ? _i <= x : _i >= x; i = 0 <= x ? ++_i : --_i) {
-            for (j = _j = -y; - y <= y ? _j <= y : _j >= y; j = -y <= y ? ++_j : --_j) {
-                textCtx.fillText(configInputSetting.text.value, (width + margin) * i, configInputSetting.space
-                    .value * textSize * j);
+        
+        const width = textCtx.measureText(configInputSetting.text.value).width;
+        const margin = textCtx.measureText('啊').width;
+        
+        // 计算需要绘制的范围
+        const rectWidth = diagonal;
+        const rectHeight = diagonal;
+        
+        // 计算起始位置，使文字从左上角开始填充
+        const startX = -rectWidth/2;
+        const startY = -rectHeight/2;
+        
+        // 计算水印间距
+        const xStep = width + margin;
+        const yStep = configInputSetting.space.value * textSize;
+        
+        // 计算需要重复的次数
+        const cols = Math.ceil(rectWidth / xStep);
+        const rows = Math.ceil(rectHeight / yStep);
+        
+        // 制水印
+        for (let i = 0; i <= cols; i++) {
+            for (let j = 0; j <= rows; j++) {
+                const x = startX + i * xStep;
+                const y = startY + j * yStep;
+                textCtx.fillText(configInputSetting.text.value, x, y);
             }
         }
+        
+        // 恢复画布状态
+        textCtx.restore();
     };
 
     image.addEventListener('change', function () {
@@ -316,6 +436,35 @@
             }) => {
                 drawText(canvas, img);
             });
+        });
+    });
+
+    const container = $('#container');
+
+    container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        container.style.border = '2px dashed #3498db';
+    });
+
+    container.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        container.style.border = 'none';
+    });
+
+    container.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        container.style.border = 'none';
+        
+        const files = [...e.dataTransfer.files];
+        files.forEach(file => {
+            const type = file.type;
+            if (!['image/png', 'image/jpeg', 'image/gif'].includes(type)) {
+                return alert('仅支持 png, jpg, gif 图片格式');
+            }
+            readFile(file);
         });
     });
 </script>
