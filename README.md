@@ -1,4 +1,4 @@
-# offline-photo-watermark 离线照片水印
+# photo-watermark 离线照片水印
 
 ![](https://img.shields.io/github/stars/cuijianzhuang/photo-watermark.svg)
 ## 简介
