@@ -284,11 +284,11 @@
             return;
         }
         
-        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-        if(file.size > MAX_SIZE) {
-            return alert('图片大小不能超过5MB');
-        }
-        
+        // const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+        // if(file.size > MAX_SIZE) {
+        //     return alert('图片大小不能超过5MB');
+        // }
+        //
         fileReader = new FileReader;
         fileReader.onerror = function() {
             alert('图片读取失败');
@@ -389,7 +389,7 @@
         const rectWidth = diagonal;
         const rectHeight = diagonal;
         
-        // 计算起始位置，使文字从左上角开始填充
+        // 计算起始位置，使��字从左上角开始填充
         const startX = -rectWidth/2;
         const startY = -rectHeight/2;
         
