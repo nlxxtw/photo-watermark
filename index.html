@@ -483,16 +483,8 @@
         
         var fileReader = new FileReader;
         
-        fileReader.onprogress = function(e) {
-            if (e.lengthComputable) {
-                const progress = (e.loaded / e.total) * 100;
-                progressBar.style.width = progress + '%';
-            }
-        };
-        
         fileReader.onload = function () {
-            var img;
-            img = new Image;
+            var img = new Image;
             img.onload = function () {
                 var ctx;
                 const canvas = document.createElement('canvas');
@@ -501,14 +493,6 @@
                 ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0);
 
-                allCanvas.push({
-                    img: img,
-                    canvas: canvas,
-                    fileName: file.name
-                });
-
-                drawText(canvas, img);
-                
                 // 创建图片容器
                 const container = document.createElement('div');
                 container.className = 'image-container';
@@ -516,33 +500,34 @@
                 // 添加画布，并增加点击预览功能
                 canvas.style.cursor = 'zoom-in';
                 canvas.addEventListener('click', () => {
-                    // 预先生成图片数据
-                    const imageData = canvas.toDataURL('image/png');
-                    
-                    // 预加载图片
-                    const tempImg = new Image();
-                    tempImg.onload = () => {
-                        previewImage.src = imageData;
-                        previewModal.style.display = 'flex';
-                        // 强制回流
-                        previewModal.offsetHeight;
+                    previewImage.src = canvas.toDataURL('image/png');
+                    previewModal.style.display = 'flex';
+                    requestAnimationFrame(() => {
                         previewModal.classList.add('active');
-                    };
-                    tempImg.src = imageData;
+                    });
                 });
+                
+                // 先添加到数组中
+                allCanvas.push({
+                    img: img,
+                    canvas: canvas,
+                    fileName: file.name
+                });
+
+                // 然后绘制水印
+                drawText(canvas, img);
+                
                 container.appendChild(canvas);
                 
-                // 添加图片信息和下载按钮
+                // 添加图片信息和操作按钮
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'image-info';
                 
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = file.name;
-                infoDiv.appendChild(nameSpan);
                 
                 const sizeSpan = document.createElement('span');
                 sizeSpan.textContent = `${(file.size / 1024).toFixed(1)}KB`;
-                infoDiv.appendChild(sizeSpan);
                 
                 const buttonGroup = document.createElement('div');
                 buttonGroup.style.display = 'flex';
@@ -551,21 +536,22 @@
                 const downloadBtn = document.createElement('button');
                 downloadBtn.className = 'download-btn';
                 downloadBtn.textContent = '下载';
-                downloadBtn.onclick = () => downloadCanvasAsImage(canvas, file.name);
+                downloadBtn.onclick = (e) => {
+                    e.stopPropagation(); // 防止触发预览
+                    downloadCanvasAsImage(canvas, file.name);
+                };
                 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'download-btn delete-btn';
                 deleteBtn.textContent = '删除';
-                deleteBtn.onclick = () => {
-                    // 从数组中移除
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation(); // 防止触发预览
                     const index = allCanvas.findIndex(item => item.canvas === canvas);
                     if (index > -1) {
                         allCanvas.splice(index, 1);
                     }
-                    // 从DOM中移除
                     container.remove();
                     
-                    // 如果没有图片了，恢复空状态
                     if (graph.children.length === 0) {
                         graph.classList.add('empty');
                     }
@@ -573,26 +559,24 @@
                 
                 buttonGroup.appendChild(downloadBtn);
                 buttonGroup.appendChild(deleteBtn);
-                infoDiv.appendChild(buttonGroup);
                 
+                infoDiv.appendChild(nameSpan);
+                infoDiv.appendChild(sizeSpan);
+                infoDiv.appendChild(buttonGroup);
                 container.appendChild(infoDiv);
                 
-                // 添加到网格中
                 graph.appendChild(container);
-                
-                // 移除空状态
                 graph.classList.remove('empty');
                 
-                // 移除原来的点击事件
-                // canvas.addEventListener('click', () => downloadCanvasAsImage(canvas, file.name));
+                progressBar.style.width = '100%';
+                progressText.textContent = '处理完成';
+                setTimeout(() => {
+                    uploadProgress.style.display = 'none';
+                }, 1000);
             };
-            progressBar.style.width = '100%';
-            progressText.textContent = '处理完成';
-            setTimeout(() => {
-                uploadProgress.style.display = 'none';
-            }, 1000);
-            return img.src = fileReader.result;
+            img.src = fileReader.result;
         };
+        
         fileReader.onerror = function() {
             progressText.textContent = '图片处理失败';
             progressBar.style.background = '#e74c3c';
@@ -726,21 +710,26 @@
     previewModal = $('#previewModal');
     previewImage = $('#previewImage');
     
-    previewModal.addEventListener('click', (e) => {
-        if (e.target === previewModal) {  // 只有点击背景才关闭
-            previewModal.classList.remove('active');
-            setTimeout(() => {
-                previewModal.style.display = 'none';
-                // 清理资源
-                previewImage.src = '';
-            }, 200);
+    previewModal.addEventListener('click', function(e) {
+        // 如果点击的是模态框本身（而不是图片），则关闭预览
+        if (e.target === this) {
+            closePreview();
         }
     });
 
-    // 阻止图片点击事件冒泡
-    previewImage.addEventListener('click', (e) => {
-        e.stopPropagation();
+    // 添加预览图片的点击事件
+    previewImage.addEventListener('click', function(e) {
+        e.stopPropagation(); // 阻止事件冒泡到模态框
+        closePreview();
     });
+
+    // 抽取关闭预览的函数
+    function closePreview() {
+        previewModal.classList.remove('active');
+        setTimeout(() => {
+            previewModal.style.display = 'none';
+        }, 300); // 等待过渡动画完成
+    }
 
     const uploadBox = $('.upload-box');
 
