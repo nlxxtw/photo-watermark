@@ -895,7 +895,7 @@
     </div>
     <div class="align-center-box">
         <label for="text">第二步：输入需要打水印的文字</label>
-        <input style="flex:1;margin-bottom:0" type="text" id="text" placeholder="请输入文字" autocomplete="off">
+        <input style="flex:1;margin-bottom:0" type="text" id="text" placeholder="请输入文字" autocomplete="off" value="版权所有 侵权必究">
     </div>
 
     <div class="align-center-box">
@@ -1045,7 +1045,7 @@
         allCanvas.forEach(({canvas, fileName}) => {
             setTimeout(() => {
                 downloadCanvasAsImage(canvas, fileName);
-            }, 100); // 添加少许延迟，避免浏览器同时触发太多下载
+            }, 100); // 添加少���延迟，避免浏览器同时触发太多下载
         });
     };
     readFile = function (file) {
@@ -1081,7 +1081,7 @@
                 ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0);
 
-                // 创建图片容器
+                // ���建图片容器
                 const container = document.createElement('div');
                 container.className = 'image-container';
                 
