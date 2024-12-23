@@ -159,6 +159,47 @@
         .download-btn:hover {
             background: #2980b9;
         }
+
+        .image-container canvas {
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+        
+        .image-container canvas:hover {
+            transform: scale(1.02);
+        }
+        
+        #previewModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            transform: translateZ(0);
+            will-change: transform;
+        }
+        
+        #previewImage {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            cursor: zoom-out;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            transform: scale(0.95) translateZ(0);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+        
+        #previewModal.active #previewImage {
+            transform: scale(1) translateZ(0);
+        }
     </style>
 </head>
 <div id="container">
@@ -201,9 +242,12 @@
     <button onclick="downloadAllPic()">下载全部</button>
     <p id="graph"></p>
 </div>
+<div id="previewModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <img id="previewImage" style="max-width:90%; max-height:90%; object-fit:contain; cursor:zoom-out;">
+</div>
 <script>
     var $, canvas, dataURItoBlob, graph, image, configInputSetting, inputItems,
-        readFile;
+        readFile, previewModal, previewImage;
 
     $ = function (sel) {
         return document.querySelector(sel);
@@ -317,7 +361,23 @@
                 const container = document.createElement('div');
                 container.className = 'image-container';
                 
-                // 添加画布
+                // 添加画布，并增加点击预览功能
+                canvas.style.cursor = 'zoom-in';
+                canvas.addEventListener('click', () => {
+                    // 预先生成图片数据
+                    const imageData = canvas.toDataURL('image/png');
+                    
+                    // 预加载图片
+                    const tempImg = new Image();
+                    tempImg.onload = () => {
+                        previewImage.src = imageData;
+                        previewModal.style.display = 'flex';
+                        // 强制回流
+                        previewModal.offsetHeight;
+                        previewModal.classList.add('active');
+                    };
+                    tempImg.src = imageData;
+                });
                 container.appendChild(canvas);
                 
                 // 添加图片信息和下载按钮
@@ -389,7 +449,7 @@
         const rectWidth = diagonal;
         const rectHeight = diagonal;
         
-        // 计算起始位置，使��字从左上角开始填充
+        // 计算起始位置，使字从左上角开始填充
         const startX = -rectWidth/2;
         const startY = -rectHeight/2;
         
@@ -467,6 +527,25 @@
             }
             readFile(file);
         });
+    });
+
+    previewModal = $('#previewModal');
+    previewImage = $('#previewImage');
+    
+    previewModal.addEventListener('click', (e) => {
+        if (e.target === previewModal) {  // 只有点击背景才关闭
+            previewModal.classList.remove('active');
+            setTimeout(() => {
+                previewModal.style.display = 'none';
+                // 清理资源
+                previewImage.src = '';
+            }, 200);
+        }
+    });
+
+    // 阻止图片点击事件冒泡
+    previewImage.addEventListener('click', (e) => {
+        e.stopPropagation();
     });
 </script>
 
