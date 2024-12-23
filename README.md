@@ -18,4 +18,4 @@
 ## 贡献
 如果你想参与这个软件的开发，欢迎PR
 ## 致谢
-本项目 fork 自 [sfz](https://github.com/joyqi/sfz), 并在此基础上进行二次修改。感谢 @joyqi
+本项目 fork 自 [jzsn2018](https://github.com/jzsn2018/offline-photo-watermark), 并在此基础上进行二次修改。感谢 @joyqi
