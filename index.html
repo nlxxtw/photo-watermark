@@ -920,6 +920,34 @@
             text-overflow: ellipsis;
             text-align: center;
         }
+
+        /* 在 .upload-tip 样式后添加以下样式 */
+
+        .upload-progress {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--progress-bg);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-inner {
+            height: 100%;
+            background: var(--button-primary);
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: var(--secondary-text);
+            text-align: center;
+            margin-top: 5px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -1162,7 +1190,9 @@
             if (e.lengthComputable) {
                 const progress = (e.loaded / e.total) * 100;
                 progressBar.style.width = progress + '%';
-                progressText.textContent = `读取进度: ${Math.round(progress)}%`;
+                // 格式化进度显示，保留两位小数
+                const formattedProgress = progress.toFixed(2);
+                progressText.textContent = `读取进度: ${formattedProgress}%`;
             }
         };
         
