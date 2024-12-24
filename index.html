@@ -895,7 +895,13 @@
     </div>
     <div class="align-center-box">
         <label for="text">第二步：输入需要打水印的文字</label>
-        <input style="flex:1;margin-bottom:0" type="text" id="text" placeholder="请输入文字" autocomplete="off" value="版权所有 侵权必究">
+        <input style="flex:1;margin-bottom:0" 
+               type="text" 
+               id="text" 
+               placeholder="请输入文字" 
+               value="版权所有 侵权必究"
+               spellcheck="false"
+               autocomplete="off">
     </div>
 
     <div class="align-center-box">
@@ -1205,20 +1211,91 @@
         
         // 文本换行处理函数
         const wrapText = (text, maxWidth) => {
-            const words = text.split('');
-            const lines = [];
-            let currentLine = words[0] || '';
+            // 优化分隔规则，更精确地识别不同类型的文本
+            const splitPattern = /([0-9-\/年月日\s]+|[a-zA-Z]+|[\u4e00-\u9fa5]+|[^\u4e00-\u9fa5a-zA-Z0-9\s]+)/g;
+            const segments = text.match(splitPattern) || [];
             
-            for(let i = 1; i < words.length; i++) {
-                const width = textCtx.measureText(currentLine + words[i]).width;
-                if (width < maxWidth) {
-                    currentLine += words[i];
+            const lines = [];
+            let currentLine = '';
+            
+            // 增强日期格式识别
+            const isDateLike = (str) => {
+                return /\d{4}[-\/年]\d{1,2}[-\/月]\d{1,2}[日]?/.test(str) ||   // 2024-03-21 或 2024年03月21日
+                       /\d{1,2}[-\/]\d{1,2}[-\/]\d{4}/.test(str) ||            // 21-03-2024
+                       /\d{4}[-\/\.]\d{1,2}[-\/\.]\d{1,2}/.test(str) ||        // 2024.03.21
+                       /\d{1,2}月\d{1,2}日/.test(str);                         // 3月21日
+            };
+            
+            // 增强需要保持在一行的文本判断
+            const shouldKeepTogether = (str) => {
+                return isDateLike(str) ||                         // 日期
+                       /^[a-zA-Z0-9-_\s]{1,20}$/.test(str) ||    // 英文数字组合（限制长度）
+                       /^[\u4e00-\u9fa5]{1,2}$/.test(str) ||     // 短中文词组
+                       /^(?:©|®|™|℗|℠|№|℡)/.test(str) ||        // 特殊符号
+                       /^(?:v|V|ver|Ver)\s*\d+(?:\.\d+)*$/.test(str); // 版本号
+            };
+            
+            // 处理连续的需要保持在一起的片段
+            let tempSegments = [];
+            for (let i = 0; i < segments.length; i++) {
+                const segment = segments[i].trim();
+                if (!segment) continue;
+                
+                // 检查是否可以与前一个片段合并
+                if (tempSegments.length > 0 && 
+                    shouldKeepTogether(tempSegments[tempSegments.length - 1] + segment)) {
+                    tempSegments[tempSegments.length - 1] += segment;
                 } else {
-                    lines.push(currentLine);
-                    currentLine = words[i];
+                    tempSegments.push(segment);
                 }
             }
-            lines.push(currentLine);
+            
+            // 处理分段后的文本
+            for (let i = 0; i < tempSegments.length; i++) {
+                const segment = tempSegments[i];
+                const testLine = currentLine + (currentLine ? ' ' : '') + segment;
+                const testWidth = textCtx.measureText(testLine).width;
+                
+                if (testWidth <= maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    // 如果当前行非空，先保存当前行
+                    if (currentLine) {
+                        lines.push(currentLine);
+                        currentLine = '';
+                    }
+                    
+                    // 处理超长片段
+                    if (textCtx.measureText(segment).width > maxWidth) {
+                        // 对于超长片段，尝试按词或字符拆分
+                        if (shouldKeepTogether(segment)) {
+                            // 对于需要保持在一起的文本，作为整体处理
+                            lines.push(segment);
+                        } else {
+                            // 按字符拆分
+                            let tempLine = '';
+                            for (const char of segment) {
+                                const testTemp = tempLine + char;
+                                if (textCtx.measureText(testTemp).width <= maxWidth) {
+                                    tempLine = testTemp;
+                                } else {
+                                    if (tempLine) lines.push(tempLine);
+                                    tempLine = char;
+                                }
+                            }
+                            if (tempLine) currentLine = tempLine;
+                        }
+                    } else {
+                        currentLine = segment;
+                    }
+                }
+            }
+            
+            // 添加最后一行
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
             return lines;
         };
         
@@ -1738,6 +1815,48 @@
         });
         
         // ... 其他初始化代码 ...
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const textInput = document.getElementById('text');
+        
+        // 处理粘贴事件
+        textInput.addEventListener('paste', (e) => {
+            e.preventDefault();
+            
+            // 获取粘贴的文本
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            
+            // 将文本插入到当前光标位置
+            const start = textInput.selectionStart;
+            const end = textInput.selectionEnd;
+            const text = textInput.value;
+            const newText = text.slice(0, start) + pastedText + text.slice(end);
+            textInput.value = newText;
+            
+            // 更新光标位置
+            const newCursorPos = start + pastedText.length;
+            textInput.setSelectionRange(newCursorPos, newCursorPos);
+            
+            // 触发 input 事件以更新水印
+            textInput.dispatchEvent(new Event('input'));
+        });
+        
+        // 优化输入体验
+        textInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // 防止回车提交表单
+                textInput.blur(); // 失去焦点
+            }
+        });
+        
+        // 添加输入限制（可选）
+        textInput.addEventListener('input', () => {
+            // 如果需要限制输入长度，可以在这里添加
+            if (textInput.value.length > 100) { // 假设最大长度为100
+                textInput.value = textInput.value.slice(0, 100);
+            }
+        });
     });
 </script>
 
