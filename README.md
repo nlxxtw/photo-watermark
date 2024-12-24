@@ -1,4 +1,5 @@
-# 离线照片水印打码工具
+# 离线照片水印打码工具![](https://img.shields.io/github/stars/cuijianzhuang/photo-watermark.svg)
+
 
 一个纯前端实现的离线水印工具，可以安全地为图片添加水印，无需上传图片到服务器，特别适合处理敏感证件（身份证、驾照、护照等）。
 
