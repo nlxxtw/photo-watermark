@@ -947,7 +947,10 @@
             value="0.8">
 
         <label for="rotate">旋转角度</label>
-        <input style="flex:1;margin-right:30px" type="range" id="rotate" min="0" max="360" step="5" autocomplete="off" value="45"><br>
+        <input style="flex:1;margin-right:30px" type="range" id="rotate" 
+               min="-90" max="90" step="3" 
+               autocomplete="off" value="45">
+        <span id="rotateValue">45°</span>
     </p>
 
     <label for="text">第三步：点击图片进行单个图片下载</label>
@@ -1045,7 +1048,7 @@
         allCanvas.forEach(({canvas, fileName}) => {
             setTimeout(() => {
                 downloadCanvasAsImage(canvas, fileName);
-            }, 100); // 添加少���延迟，避免浏览器同时触发太多下载
+            }, 100); // 添加少延迟，避免浏览器同时触发太多下载
         });
     };
     readFile = function (file) {
@@ -1081,7 +1084,7 @@
                 ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0);
 
-                // ���建图片容器
+                // 建图片容器
                 const container = document.createElement('div');
                 container.className = 'image-container';
                 
@@ -1690,6 +1693,18 @@
                 });
             }
         });
+    });
+
+    // 添加角度显示的实时更新
+    document.addEventListener('DOMContentLoaded', () => {
+        const rotateInput = document.getElementById('rotate');
+        const rotateValue = document.getElementById('rotateValue');
+        
+        rotateInput.addEventListener('input', () => {
+            rotateValue.textContent = `${rotateInput.value}°`;
+        });
+        
+        // ... 其他初始化代码 ...
     });
 </script>
 
