@@ -191,7 +191,7 @@
             align-items: center;
             opacity: 0;
             transition: opacity 0.3s ease;
-            will-change: opacity;
+            will-change: opacity, transform;
             -webkit-backdrop-filter: blur(5px);
             backdrop-filter: blur(5px);
         }
@@ -205,8 +205,8 @@
             max-height: 95%;
             object-fit: contain;
             transform: scale(0.95);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            will-change: transform;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, filter;
             cursor: zoom-out;
         }
         
@@ -214,6 +214,13 @@
             transform: scale(1);
         }
         
+        /* 添加模糊效果过渡 */
+        #previewImage.blur {
+            filter: blur(10px);
+            transform: scale(0.98);
+        }
+        
+        /* 优化加载指示器 */
         #previewModal::before {
             content: '';
             position: absolute;
@@ -222,7 +229,7 @@
             width: 40px;
             height: 40px;
             margin: -20px 0 0 -20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.2);
             border-top-color: #fff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -234,32 +241,49 @@
             opacity: 1;
         }
         
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+        /* 添加进度条样式 */
+        .preview-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
         }
         
-        /* 优化移动端体验 */
+        .preview-progress-inner {
+            width: 100%;
+            height: 100%;
+            background: var(--button-primary);
+            transform-origin: left;
+        }
+        
+        /* 深色模式适配 */
+        [data-theme="dark"] #previewModal::before {
+            border-color: rgba(0, 0, 0, 0.2);
+            border-top-color: var(--text-color);
+        }
+        
+        /* 移动端优化 */
         @media (max-width: 768px) {
-            #previewModal {
-                background: rgba(0, 0, 0, 0.95);
-            }
-            
             #previewImage {
                 max-width: 100%;
                 max-height: 100%;
             }
+            
+            #previewModal {
+                padding: 0;
+            }
         }
         
-        /* 添加触摸设备的优化 */
-        @media (hover: none) {
-            #previewImage {
-                transform: scale(1);
-            }
-            
-            #previewModal.active #previewImage {
-                transform: scale(1);
+        /* 优化动画性能 */
+        @media (prefers-reduced-motion: reduce) {
+            #previewImage,
+            #previewModal {
+                transition: none;
             }
         }
 
@@ -775,7 +799,7 @@
             }
         }
 
-        /* 添加触摸设备的优化 */
+        /* 添加触摸设备优化 */
         @media (hover: none) {
             .image-container canvas {
                 cursor: default;
@@ -1609,7 +1633,7 @@
         }
     };
 
-    // 添加支持的图片类型配置
+    // 添加支持的图片类型设置
     const SUPPORTED_IMAGE_TYPES = {
         'image/jpeg': ['jpg', 'jpeg'],
         'image/png': ['png'],
@@ -1711,10 +1735,21 @@
 
     // 抽取关闭预览的函数
     function closePreview() {
-        previewModal.classList.remove('active');
+        const modal = document.getElementById('previewModal');
+        const previewImg = document.getElementById('previewImage');
+        
+        modal.classList.remove('active');
+        
+        // 等待过渡动画完成后清理资源
         setTimeout(() => {
-            previewModal.style.display = 'none';
-        }, 300); // 等待过渡动画完成
+            modal.style.display = 'none';
+            modal.classList.remove('loading');
+            if (previewImg.src.startsWith('blob:')) {
+                URL.revokeObjectURL(previewImg.src);
+            }
+            previewImg.src = '';
+            previewImg.classList.remove('blur');
+        }, 300);
     }
 
     const uploadBox = $('.upload-box');
@@ -2108,24 +2143,45 @@
         const modal = document.getElementById('previewModal');
         const previewImg = document.getElementById('previewImage');
         
-        // 添加加载指示器
+        // 添加加载状态
         modal.classList.add('loading');
         modal.style.display = 'flex';
         
-        // 使用 requestAnimationFrame 优化动画
+        // 创建低质量预览图
+        const thumbnailCanvas = document.createElement('canvas');
+        const maxThumbnailSize = 800; // 缩略图最大尺寸
+        const scale = Math.min(1, maxThumbnailSize / Math.max(canvas.width, canvas.height));
+        thumbnailCanvas.width = canvas.width * scale;
+        thumbnailCanvas.height = canvas.height * scale;
+        
+        const ctx = thumbnailCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+        
+        // 先显示缩略图
+        previewImg.src = thumbnailCanvas.toDataURL('image/jpeg', 0.5);
+        previewImg.classList.add('blur'); // 添加模糊效果
+        
+        // 使用 requestAnimationFrame 确保过渡动画流畅
         requestAnimationFrame(() => {
-            // 预加载图片
-            const tempImg = new Image();
-            tempImg.onload = () => {
-                previewImg.src = tempImg.src;
-                modal.classList.remove('loading');
-                modal.classList.add('active');
-            };
+            modal.classList.add('active');
             
-            // 转换图片格式为 webp 以提高性能
+            // 加载高质量图片
             canvas.toBlob(blob => {
-                tempImg.src = URL.createObjectURL(blob);
-            }, 'image/webp', 0.9);
+                const url = URL.createObjectURL(blob);
+                const highQualityImg = new Image();
+                
+                highQualityImg.onload = () => {
+                    previewImg.src = url;
+                    previewImg.classList.remove('blur');
+                    modal.classList.remove('loading');
+                    
+                    // 清理缩略图
+                    URL.revokeObjectURL(thumbnailCanvas.toDataURL());
+                    thumbnailCanvas.remove();
+                };
+                
+                highQualityImg.src = url;
+            }, 'image/jpeg', 0.92);
         });
     }
 </script>
