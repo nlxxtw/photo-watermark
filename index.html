@@ -140,12 +140,9 @@
 
         .image-info {
             padding: 10px 0 0;
-            font-size: 13px;
-            color: #666;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .image-info span {
@@ -1020,6 +1017,31 @@
                 font-size: 13px;
             }
         }
+
+        /* 添加文件名容器样式 */
+        .file-name {
+            font-size: 13px;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+
+        /* 修改按钮组样式 */
+        .button-group-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .button-group-container .download-btn {
+            flex: 1;
+            min-width: 0;
+            padding: 6px;
+            font-size: 12px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -1304,21 +1326,19 @@
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'image-info';
                 
-                const nameSpan = document.createElement('span');
+                // 添加文件名
+                const nameSpan = document.createElement('div');
+                nameSpan.className = 'file-name';
                 nameSpan.textContent = file.name;
                 
-                const sizeSpan = document.createElement('span');
-                sizeSpan.textContent = `${(file.size / 1024).toFixed(1)}KB`;
-                
                 const buttonGroup = document.createElement('div');
-                buttonGroup.style.display = 'flex';
-                buttonGroup.style.gap = '5px';
+                buttonGroup.className = 'button-group-container';
                 
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'download-btn copy-btn';
                 copyBtn.textContent = '复制';
                 copyBtn.onclick = (e) => {
-                    e.stopPropagation(); // 防止触发预览
+                    e.stopPropagation();
                     copyImageToClipboard(canvas);
                 };
                 
@@ -1326,7 +1346,7 @@
                 downloadBtn.className = 'download-btn';
                 downloadBtn.textContent = '下载';
                 downloadBtn.onclick = (e) => {
-                    e.stopPropagation(); // 防止触发预览
+                    e.stopPropagation();
                     downloadCanvasAsImage(canvas, file.name);
                 };
                 
@@ -1334,7 +1354,7 @@
                 deleteBtn.className = 'download-btn delete-btn';
                 deleteBtn.textContent = '删除';
                 deleteBtn.onclick = (e) => {
-                    e.stopPropagation(); // 防止触发预览
+                    e.stopPropagation();
                     const index = allCanvas.findIndex(item => item.canvas === canvas);
                     if (index > -1) {
                         allCanvas.splice(index, 1);
@@ -1351,7 +1371,6 @@
                 buttonGroup.appendChild(deleteBtn);
                 
                 infoDiv.appendChild(nameSpan);
-                infoDiv.appendChild(sizeSpan);
                 infoDiv.appendChild(buttonGroup);
                 container.appendChild(infoDiv);
                 
