@@ -1456,10 +1456,10 @@
             
             // 判断是否为标点符号
             const isPunctuation = (str) => {
-                return /^[，。！？；：、,.!?;:]$/.test(str);
+                return /^[，。！？；：、,.!?;:\s]$/.test(str);
             };
             
-            // 其他判断函数保持不变
+            // 判断日期格式
             const isDateLike = (str) => {
                 return /\d{4}[-\/年]\d{1,2}[-\/月]\d{1,2}[日]?/.test(str) ||
                        /\d{1,2}[-\/]\d{1,2}[-\/]\d{4}/.test(str) ||
@@ -1467,12 +1467,13 @@
                        /\d{1,2}月\d{1,2}日/.test(str);
             };
             
+            // 判断是否需要保持在一起的文本
             const shouldKeepTogether = (str) => {
                 return isDateLike(str) ||
-                       /^[a-zA-Z0-9-_\s]{1,20}$/.test(str) ||
-                       /^[\u4e00-\u9fa5]{1,2}$/.test(str) ||
-                       /^(?:©|®|™|℗|℠|№|℡)/.test(str) ||
-                       /^(?:v|V|ver|Ver)\s*\d+(?:\.\d+)*$/.test(str);
+                       /^[a-zA-Z0-9-_\s]{1,20}$/.test(str) || // 英文数字组合
+                       /^[\u4e00-\u9fa5]{1,4}$/.test(str) || // 1-4个汉字
+                       /^(?:©|®|™|℗|℠|№|℡)/.test(str) || // 特殊符号
+                       /^(?:v|V|ver|Ver)\s*\d+(?:\.\d+)*$/.test(str); // 版本号
             };
             
             // 处理分段后的文本
@@ -1484,9 +1485,22 @@
                 const nextSegment = segments[i + 1] ? segments[i + 1].trim() : '';
                 const isNextPunctuation = isPunctuation(nextSegment);
                 
-                // 如果当前片段是标点符号，直接添加到当前行
+                // 如果当前片段是标点符号
                 if (isPunctuation(segment)) {
-                    currentLine += segment;
+                    // 如果当前行为空，且前面有内容，将标点加到上一行
+                    if (!currentLine && lines.length > 0) {
+                        const lastLine = lines[lines.length - 1];
+                        const testLastLine = lastLine + segment;
+                        if (textCtx.measureText(testLastLine).width <= maxWidth) {
+                            lines[lines.length - 1] = testLastLine;
+                        } else {
+                            // 如果加到上一行会超出宽度，先保存到当前行
+                            currentLine = segment;
+                        }
+                    } else {
+                        // 直接添加到当前行
+                        currentLine += segment;
+                    }
                     continue;
                 }
                 
@@ -1505,12 +1519,18 @@
                 } else {
                     // 如果当前行非空，需要换行
                     if (currentLine) {
-                        lines.push(currentLine);
-                        currentLine = segment;
-                        // 如果下一个是标点符号，尝试添加
-                        if (isNextPunctuation && textCtx.measureText(segment + nextSegment).width <= maxWidth) {
-                            currentLine += nextSegment;
-                            i++;
+                        // 检查当前行是否只包含标点符号
+                        if (!isPunctuation(currentLine)) {
+                            lines.push(currentLine);
+                            currentLine = segment;
+                            // 如果下一个是标点符号，尝试添加
+                            if (isNextPunctuation && textCtx.measureText(segment + nextSegment).width <= maxWidth) {
+                                currentLine += nextSegment;
+                                i++;
+                            }
+                        } else {
+                            // 如果当前行只有标点，将其与新片段合并
+                            currentLine += segment;
                         }
                     } else {
                         // 处理超长片段
@@ -1519,7 +1539,7 @@
                             lines.push(segment);
                             currentLine = '';
                         } else {
-                            // 按字符拆分
+                            // 按字符拆分，确保标点跟随前面的文字
                             let tempLine = '';
                             for (const char of segment) {
                                 const testTemp = tempLine + char;
@@ -1527,9 +1547,22 @@
                                     tempLine = testTemp;
                                 } else {
                                     if (tempLine) {
-                                        lines.push(tempLine);
+                                        // 检查下一个字符是否为标点
+                                        if (isPunctuation(char)) {
+                                            // 如果是标点，尝试加入当前行
+                                            if (textCtx.measureText(tempLine + char).width <= maxWidth * 1.1) {
+                                                tempLine += char;
+                                            } else {
+                                                lines.push(tempLine);
+                                                tempLine = char;
+                                            }
+                                        } else {
+                                            lines.push(tempLine);
+                                            tempLine = char;
+                                        }
+                                    } else {
+                                        tempLine = char;
                                     }
-                                    tempLine = char;
                                 }
                             }
                             if (tempLine) {
@@ -1540,9 +1573,20 @@
                 }
             }
             
-            // 添加最后一行
+            // 添加最后一行，确保不会只有标点符号
             if (currentLine) {
-                lines.push(currentLine);
+                if (!isPunctuation(currentLine) || lines.length === 0) {
+                    lines.push(currentLine);
+                } else if (lines.length > 0) {
+                    // 如果最后只剩标点，尝试加到前一行
+                    const lastLine = lines[lines.length - 1];
+                    const testLastLine = lastLine + currentLine;
+                    if (textCtx.measureText(testLastLine).width <= maxWidth * 1.1) {
+                        lines[lines.length - 1] = testLastLine;
+                    } else {
+                        lines.push(currentLine);
+                    }
+                }
             }
             
             return lines;
@@ -2207,6 +2251,255 @@
             }, 'image/jpeg', 0.92);
         });
     }
+
+    // 图片处理相关配置
+    const ImageConfig = {
+        SUPPORTED_TYPES: {
+            'image/jpeg': ['jpg', 'jpeg'],
+            'image/png': ['png'],
+            'image/gif': ['gif'],
+            'image/webp': ['webp'],
+            'image/bmp': ['bmp'],
+            'image/x-icon': ['ico'],
+            'image/vnd.microsoft.icon': ['ico']
+        },
+        
+        isTypeSupported(file) {
+            return Object.keys(this.SUPPORTED_TYPES).includes(file.type);
+        },
+        
+        getExtension(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            for (const [mimeType, extensions] of Object.entries(this.SUPPORTED_TYPES)) {
+                if (extensions.includes(ext)) return ext;
+            }
+            return null;
+        }
+    };
+
+    // 常量定义
+    const CONSTANTS = {
+        SUPPORTED_IMAGE_TYPES: {
+            'image/jpeg': ['jpg', 'jpeg'],
+            'image/png': ['png'],
+            'image/gif': ['gif'],
+            'image/webp': ['webp'],
+            'image/bmp': ['bmp'],
+            'image/x-icon': ['ico'],
+            'image/vnd.microsoft.icon': ['ico']
+        },
+        WATERMARK_POSITIONS: {
+            CENTER: 'center',
+            TOP_LEFT: 'top-left',
+            TOP_RIGHT: 'top-right',
+            BOTTOM_LEFT: 'bottom-left',
+            BOTTOM_RIGHT: 'bottom-right'
+        },
+        WATERMARK_PATTERNS: {
+            TILE: 'tile',
+            SINGLE: 'single',
+            CUSTOM: 'custom'
+        }
+    };
+
+    /**
+     * 水印渲染器类
+     * 负责处理水印的绘制和样式设置
+     */
+    class WatermarkRenderer {
+        /**
+         * 构造函数
+         * @param {HTMLCanvasElement} canvas - 目标画布
+         * @param {Object} config - 水印配置
+         */
+        constructor(canvas, config) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.config = config;
+            
+            // 初始化缓存
+            this.initCache();
+        }
+
+        /**
+         * 初始化计算缓存
+         * @private
+         */
+        initCache() {
+            this._cache = {
+                diagonal: 0,
+                fontSize: 0,
+                style: null,
+                configHash: null,
+                textMetrics: new Map()
+            };
+        }
+
+        /**
+         * 渲染水印
+         * @param {HTMLImageElement} img - 源图片
+         */
+        render(img) {
+            this.clearCanvas();
+            this.drawImage(img);
+            this.drawWatermark();
+        }
+
+        /**
+         * 清空画布
+         * @private
+         */
+        clearCanvas() {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+
+        /**
+         * 绘制源图片
+         * @private
+         * @param {HTMLImageElement} img - 源图片
+         */
+        drawImage(img) {
+            this.ctx.drawImage(img, 0, 0);
+        }
+
+        /**
+         * 设置字体样式
+         * @private
+         */
+        setFontStyle() {
+            const configHash = this.generateConfigHash();
+            
+            if (this.isConfigUnchanged(configHash)) {
+                this.applyCache();
+                return;
+            }
+
+            this.calculateAndSetFont(configHash);
+        }
+
+        /**
+         * 生成配置哈希值
+         * @private
+         * @returns {string} 配置哈希值
+         */
+        generateConfigHash() {
+            const {fontFamily, size, color, alpha} = this.config;
+            return `${fontFamily.value}-${size.value}-${color.value}-${alpha.value}`;
+        }
+
+        /**
+         * 检查配置是否变化
+         * @private
+         * @param {string} configHash - 当前配置哈希值
+         * @returns {boolean} 配置是否未变化
+         */
+        isConfigUnchanged(configHash) {
+            return this._cache.configHash === configHash;
+        }
+
+        /**
+         * 应用缓存的样式
+         * @private
+         */
+        applyCache() {
+            this.ctx.font = this._cache.font;
+            this.ctx.fillStyle = this._cache.style;
+        }
+
+        /**
+         * 计算并设置字体样式
+         * @private
+         * @param {string} configHash - 当前配置哈希值
+         */
+        calculateAndSetFont(configHash) {
+            this.updateDiagonal();
+            const fontSize = this.calculateFontSize();
+            const font = this.createFontString(fontSize);
+            const style = this.makeStyle();
+
+            this.updateStyleCache(configHash, font, style, fontSize);
+            this.applyStyles(font, style);
+        }
+
+        /**
+         * 更新对角线长度缓存
+         * @private
+         */
+        updateDiagonal() {
+            if (!this._cache.diagonal) {
+                this._cache.diagonal = Math.sqrt(
+                    this.canvas.width ** 2 + this.canvas.height ** 2
+                ) | 0;
+            }
+        }
+
+        /**
+         * 计算字体大小
+         * @private
+         * @returns {number} 计算后的字体大小
+         */
+        calculateFontSize() {
+            return (this.config.size.value * Math.max(15, this._cache.diagonal / 25)) | 0;
+        }
+
+        /**
+         * 创建字体样式字符串
+         * @private
+         * @param {number} fontSize - 字体大小
+         * @returns {string} 字体样式字符串
+         */
+        createFontString(fontSize) {
+            return `${fontSize}px "${this.config.fontFamily.value}"`;
+        }
+
+        // ... 其他方法的优化类似
+    }
+
+    /**
+     * 文件处理类
+     * 负责处理文件上传和读取
+     */
+    class FileHandler {
+        /**
+         * 构造函数
+         * @param {Object} options - 配置选项
+         * @param {Function} options.onFileRead - 文件读取成功回调
+         * @param {Function} options.onError - 错误处理回调
+         */
+        constructor(options = {}) {
+            this.onFileRead = options.onFileRead;
+            this.onError = options.onError;
+        }
+
+        // ... 其他方法
+    }
+
+    /**
+     * UI 管理类
+     * 负责处理界面交互和事件绑定
+     */
+    class WatermarkUI {
+        constructor() {
+            this.initElements();
+            this.bindEvents();
+        }
+
+        // ... 其他方法
+    }
+
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', () => {
+        const ui = new WatermarkUI();
+        const fileHandler = new FileHandler({
+            onFileRead: (img, file) => {
+                const canvas = document.createElement('canvas');
+                const renderer = new WatermarkRenderer(canvas, configInputSetting);
+                renderer.render(img);
+                ui.addImageToGallery(canvas, file.name);
+            },
+            onError: (msg) => ui.showError(msg)
+        });
+    });
 </script>
 
 </html>
