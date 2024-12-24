@@ -15,18 +15,18 @@
         #container {
             max-width: 1200px;
             margin: 30px auto;
-            padding: 30px;
-            background: var(--container-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 24px var(--shadow-color);
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
         }
 
         #graph {
             display: grid;
-            grid-gap: 24px;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            margin-top: 24px;
+            grid-gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            margin-top: 20px;
         }
 
         h1 {
@@ -111,20 +111,23 @@
             margin-left: 10px;
         }
 
+        button:hover {
+            background: #2980b9;
+        }
+
         .image-container {
             position: relative;
-            background: var(--box-bg);
-            padding: 16px;
-            border-radius: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid var(--border-color);
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
             draggable: true;
             cursor: move;
         }
 
         .image-container:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px var(--shadow-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         .image-container canvas {
@@ -163,6 +166,15 @@
             background: #2980b9;
         }
 
+        .image-container canvas {
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+        
+        .image-container canvas:hover {
+            transform: scale(1.02);
+        }
+        
         #previewModal {
             position: fixed;
             top: 0;
@@ -177,8 +189,8 @@
             opacity: 0;
             transition: opacity 0.3s ease;
             will-change: opacity, transform;
-            -webkit-backdrop-filter: blur(8px);
-            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
         }
         
         #previewModal.active {
@@ -193,8 +205,6 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform, filter;
             cursor: zoom-out;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         
         #previewModal.active #previewImage {
@@ -313,17 +323,21 @@
             opacity: 1;
         }
 
+        #graph:empty {
+            min-height: 200px;
+        }
+
         .upload-container {
             flex: 1;
         }
 
         .upload-box {
             position: relative;
-            min-height: 140px;
-            border: 2px dashed var(--upload-border);
-            border-radius: 12px;
-            background: var(--box-bg);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 120px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -331,9 +345,8 @@
         }
 
         .upload-box:hover {
-            border-color: var(--button-primary);
-            background: var(--upload-hover-bg);
-            transform: translateY(-2px);
+            border-color: #3498db;
+            background: #ebf5fb;
         }
 
         .upload-box input[type="file"] {
@@ -361,6 +374,58 @@
             font-size: 12px;
             color: #999;
             margin-top: 5px;
+        }
+
+        .upload-progress {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--progress-bg);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-inner {
+            height: 100%;
+            background: var(--button-primary);
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: var(--secondary-text);
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .dragover {
+            border-color: #3498db;
+            background: #ebf5fb;
+            transform: scale(1.02);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .delete-all-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .delete-all-btn:hover {
+            background: #c0392b;
         }
 
         /* 添加深色主题样式 */
@@ -507,6 +572,26 @@
             color: white;
         }
 
+        button:hover {
+            background: var(--button-hover);
+        }
+
+        .delete-btn {
+            background: var(--button-delete);
+        }
+
+        .delete-btn:hover {
+            background: var(--button-delete-hover);
+        }
+
+        .delete-all-btn {
+            background: var(--button-delete);
+        }
+
+        .delete-all-btn:hover {
+            background: var(--button-delete-hover);
+        }
+
         .image-info {
             color: var(--secondary-text);
         }
@@ -515,8 +600,17 @@
             color: var(--secondary-text);
         }
 
+        .dragover {
+            border-color: var(--link-color);
+            background: var(--upload-hover-bg);
+        }
+
         canvas {
             border-color: var(--border-color);
+        }
+
+        canvas:hover {
+            border-color: var(--link-color);
         }
 
         footer {
@@ -558,6 +652,10 @@
         .drag-area.dragover {
             border-color: var(--link-color);
             background: var(--drag-hover-bg);
+        }
+
+        canvas {
+            border: 2px dashed var(--canvas-border);
         }
 
         h1 {
@@ -619,8 +717,8 @@
         /* 移动端基础样式优化 */
         @media (max-width: 768px) {
             #container {
-                margin: 15px;
-                padding: 20px;
+                margin: 10px;
+                padding: 15px;
             }
 
             h1 {
@@ -696,15 +794,6 @@
                 max-width: 100%;
                 max-height: 90vh;
             }
-
-            .button-group {
-                gap: 12px;
-            }
-            
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
         }
 
         /* 添加触摸设备优化 */
@@ -746,30 +835,29 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
             gap: 6px;
             min-height: 36px;
             min-width: 80px;
             color: white;
-            letter-spacing: 0.3px;
         }
 
         /* 主要按钮 */
         .btn-primary {
             background: var(--button-primary);
-            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.25);
+            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
         }
 
         .btn-primary:hover {
             background: var(--button-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.35);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
         }
 
         /* 危险按钮 */
@@ -873,6 +961,25 @@
             color: white;
         }
 
+        .font-select-wrapper select:hover {
+            border-color: var(--button-primary);
+        }
+
+        .font-select-wrapper select:focus {
+            border-color: var(--button-primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        /* 复制按钮样式 */
+        .copy-btn {
+            background: var(--button-primary);
+        }
+
+        .copy-btn:hover {
+            background: var(--button-hover);
+        }
+
         /* Toast提示框样式 */
         #toast {
             position: fixed;
@@ -921,32 +1028,19 @@
             text-align: center;
         }
 
-        /* 在 .upload-tip 样式后添加以下样式 */
-
-        .upload-progress {
-            margin-top: 10px;
-            display: none;
+        /* 修改按钮组样式 */
+        .button-group-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
         }
 
-        .progress-bar {
-            height: 4px;
-            background: var(--progress-bg);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .progress-inner {
-            height: 100%;
-            background: var(--button-primary);
-            width: 0;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
+        .button-group-container .download-btn {
+            flex: 1;
+            min-width: 0;
+            padding: 6px;
             font-size: 12px;
-            color: var(--secondary-text);
-            text-align: center;
-            margin-top: 5px;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1095,7 +1189,6 @@
 <div id="previewModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
     <img id="previewImage" style="max-width:90%; max-height:90%; object-fit:contain; cursor:zoom-out;">
 </div>
-<!--suppress GrazieInspection -->
 <script>
     var $, canvas, dataURItoBlob, graph, image, configInputSetting, inputItems,
         readFile, previewModal, previewImage;
@@ -1181,7 +1274,7 @@
         
         uploadProgress.style.display = 'block';
         progressBar.style.width = '0%';
-        progressText.textContent = '正在处理图片...';
+        progressText.textContent = `准备处理 ${file.name}...`;
         
         var fileReader = new FileReader;
         
@@ -1189,16 +1282,25 @@
         fileReader.onprogress = (e) => {
             if (e.lengthComputable) {
                 const progress = (e.loaded / e.total) * 100;
-                progressBar.style.width = progress + '%';
-                // 格式化进度显示，保留两位小数
-                const formattedProgress = progress.toFixed(2);
-                progressText.textContent = `读取进度: ${formattedProgress}%`;
+                const percentage = Math.round(progress);
+                progressBar.style.width = percentage + '%';
+                
+                // 添加文件大小信息
+                const loaded = (e.loaded / 1024 / 1024).toFixed(1);
+                const total = (e.total / 1024 / 1024).toFixed(1);
+                progressText.textContent = `读取进度: ${percentage}% (${loaded}MB/${total}MB)`;
+                
+                // 添加进度条颜色渐变
+                progressBar.style.background = `linear-gradient(90deg, 
+                    var(--button-primary) ${percentage}%, 
+                    var(--progress-bg) ${percentage}%)`;
             }
         };
         
         fileReader.onload = function () {
             progressBar.style.width = '100%';
-            progressText.textContent = '正在处理图片...';
+            progressText.textContent = `正在处理 ${file.name}...`;
+            progressBar.style.background = 'var(--button-primary)';
             
             var img = new Image;
             img.onload = function () {
@@ -1286,18 +1388,33 @@
                 graph.appendChild(container);
                 graph.classList.remove('empty');
                 
-                progressText.textContent = '处理完成';
+                // 更新进度显示
+                progressText.textContent = `${file.name} 处理完成`;
                 setTimeout(() => {
                     uploadProgress.style.display = 'none';
+                    progressBar.style.width = '0%';
                 }, 1000);
             };
+            
+            img.onerror = function() {
+                progressText.textContent = `${file.name} 处理失败`;
+                progressBar.style.background = 'var(--button-delete)';
+                setTimeout(() => {
+                    uploadProgress.style.display = 'none';
+                    progressBar.style.width = '0%';
+                }, 2000);
+            };
+            
             img.src = fileReader.result;
         };
         
         fileReader.onerror = function() {
-            progressText.textContent = '图片处理失败';
-            progressBar.style.background = '#e74c3c';
-            alert('图片读取失败');
+            progressText.textContent = `${file.name} 读取失败`;
+            progressBar.style.background = 'var(--button-delete)';
+            setTimeout(() => {
+                uploadProgress.style.display = 'none';
+                progressBar.style.width = '0%';
+            }, 2000);
         };
         
         fileReader.readAsDataURL(file);
