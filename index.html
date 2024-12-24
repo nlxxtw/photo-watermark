@@ -1047,18 +1047,31 @@
 
         /* 添加下载进度条样式 */
         .download-progress {
-            margin-top: 10px;
+            position: relative;
+            padding: 20px;
+            border-radius: 8px;
+            background: var(--box-bg);
+            margin-top: 15px;
             display: none;
             opacity: 1;
-            transition: opacity 0.3s ease;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .progress-container {
+            flex: 1;
+            margin-right: 90px; /* 减小按钮预留空间 */
+            width: calc(100% - 90px); /* 确保固定宽度 */
         }
 
         .progress-bar {
-            height: 4px;
+            height: 6px;
             background: var(--progress-bg);
-            border-radius: 2px;
+            border-radius: 3px;
             overflow: hidden;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            width: 100%;
         }
 
         .progress-inner {
@@ -1069,9 +1082,82 @@
         }
 
         .progress-text {
+            font-size: 13px;
+            color: var(--text-color);
+            margin-bottom: 4px;
+        }
+
+        .progress-eta {
             font-size: 12px;
             color: var(--secondary-text);
-            text-align: center;
+        }
+
+        .progress-actions {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 80px; /* 固定按钮容器宽度 */
+        }
+
+        .cancel-btn,
+        .retry-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%; /* 按钮填满容器 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .cancel-btn {
+            background: var(--button-delete);
+            color: white;
+        }
+
+        .retry-btn {
+            background: var(--button-primary);
+            color: white;
+            display: none;
+        }
+
+        .cancel-btn:hover,
+        .retry-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .download-progress {
+                padding: 15px;
+            }
+
+            .progress-container {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+            
+            .progress-actions {
+                position: static;
+                transform: none;
+                display: flex;
+                justify-content: stretch;
+                gap: 8px;
+                margin-top: 12px;
+                width: 100%;
+            }
+
+            .cancel-btn,
+            .retry-btn {
+                flex: 1;
+                width: 100%;
+                padding: 8px;
+            }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1979,42 +2065,113 @@
         // 创建进度提示元素
         let progressElement = document.getElementById('downloadProgress');
         if (!progressElement) {
-            progressElement = document.createElement('div');
-            progressElement.id = 'downloadProgress';
-            progressElement.className = 'download-progress';
-            progressElement.innerHTML = `
-                <div class="progress-bar">
-                    <div class="progress-inner"></div>
-                </div>
-                <div class="progress-text">准备下载...</div>
-            `;
+            progressElement = createProgressElement();
             btn.parentNode.insertBefore(progressElement, btn.nextSibling);
         }
 
         const progressBar = progressElement.querySelector('.progress-inner');
         const progressText = progressElement.querySelector('.progress-text');
+        const progressEta = progressElement.querySelector('.progress-eta');
+        const cancelBtn = progressElement.querySelector('.cancel-btn');
+        const retryBtn = progressElement.querySelector('.retry-btn');
         
         progressElement.style.display = 'block';
         progressBar.style.width = '0%';
+        retryBtn.style.display = 'none';
+        cancelBtn.style.display = 'block';
 
-        const zip = new JSZip();
-        const total = allCanvas.length;
-        let completed = 0;
-
-        // 使用 Promise.all 和 chunk 分组处理
-        const chunkSize = 5; // 每组处理5张图片
-        const chunks = [];
+        // 取消下载标志和控制器
+        let isCancelled = false;
+        let abortController = new AbortController();
         
-        for (let i = 0; i < allCanvas.length; i += chunkSize) {
-            chunks.push(allCanvas.slice(i, i + chunkSize));
-        }
+        // 添加取消下载功能
+        cancelBtn.onclick = () => {
+            if (confirm('确定要取消下载吗？')) {
+                isCancelled = true;
+                abortController.abort(); // 中断所有操作
+                progressText.textContent = '已取消下载';
+                setTimeout(() => {
+                    progressElement.style.display = 'none';
+                    btn.classList.remove('loading');
+                }, 500);
+                showToast('已取消下载');
+            }
+        };
 
-        // 按组处理图片
-        chunks.reduce((promise, chunk) => {
-            return promise.then(() => {
-                return Promise.all(chunk.map((item) => {
-                    return new Promise((resolve) => {
+        // 添加重试功能
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        const startDownload = () => {
+            // 重置控制器
+            abortController = new AbortController();
+            const signal = abortController.signal;
+
+            const zip = new JSZip();
+            const total = allCanvas.length;
+            let completed = 0;
+            let startTime = Date.now();
+
+            // 根据设备性能自动调整 chunkSize
+            const determineChunkSize = () => {
+                const memory = navigator?.deviceMemory || 4; // 默认4GB内存
+                const cores = navigator?.hardwareConcurrency || 4; // 默认4核
+                
+                // 根据设备性能计算合适的chunkSize
+                const baseSize = Math.floor(Math.min(memory, cores) * 1.5);
+                return Math.max(3, Math.min(baseSize, 10)); // 最小3,最大10
+            };
+
+            const chunkSize = determineChunkSize();
+            const chunks = [];
+            
+            for (let i = 0; i < allCanvas.length; i += chunkSize) {
+                chunks.push(allCanvas.slice(i, i + chunkSize));
+            }
+
+            // 更新预估时间
+            const updateETA = (completed) => {
+                if (completed === 0) return;
+                
+                const elapsed = Date.now() - startTime;
+                const rate = completed / elapsed; // 每毫秒处理的数量
+                const remaining = total - completed;
+                const eta = remaining / rate; // 预估剩余毫秒数
+                
+                const formatTime = (ms) => {
+                    if (ms < 60000) return `${Math.ceil(ms / 1000)}秒`;
+                    return `${Math.ceil(ms / 60000)}分钟`;
+                };
+                
+                progressEta.textContent = `预计剩余时间: ${formatTime(eta)}`;
+            };
+
+            // 处理单个图片的函数
+            const processImage = (item) => {
+                return new Promise((resolve, reject) => {
+                    // 检查是否已取消
+                    if (signal.aborted) {
+                        reject(new Error('用户取消下载'));
+                        return;
+                    }
+
+                    const attempt = (retryCount = 0) => {
                         item.canvas.toBlob((blob) => {
+                            // 再次检查是否已取消
+                            if (signal.aborted) {
+                                reject(new Error('用户取消下载'));
+                                return;
+                            }
+
+                            if (!blob) {
+                                if (retryCount < 3) {
+                                    setTimeout(() => attempt(retryCount + 1), 1000);
+                                    return;
+                                }
+                                reject(new Error('转换图片失败'));
+                                return;
+                            }
+                            
                             let fileName = item.fileName.replace(/\.[^/.]+$/, "") + '.png';
                             zip.file(fileName, blob);
                             completed++;
@@ -2023,51 +2180,98 @@
                             const progress = (completed / total * 100).toFixed(1);
                             progressBar.style.width = progress + '%';
                             progressText.textContent = `正在处理: ${completed}/${total} (${progress}%)`;
+                            updateETA(completed);
                             
                             resolve();
                         }, 'image/png');
-                    });
-                }));
-            });
-        }, Promise.resolve())
-        .then(() => {
-            progressText.textContent = '正在生成压缩包...';
-            
-            // 使用 worker 进行压缩
-            return zip.generateAsync({
-                type: 'blob',
-                compression: 'DEFLATE',
-                compressionOptions: { level: 6 },
-            }, (metadata) => {
-                if (metadata.percent) {
-                    const progress = metadata.percent.toFixed(1);
-                    progressBar.style.width = progress + '%';
-                    progressText.textContent = `正在压缩: ${progress}%`;
+                    };
+                    
+                    attempt();
+                });
+            };
+
+            // 按组处理图片
+            return chunks.reduce((promise, chunk) => {
+                return promise.then(() => {
+                    // 检查是否已取消
+                    if (signal.aborted) {
+                        throw new Error('用户取消下载');
+                    }
+                    return Promise.all(chunk.map(processImage));
+                });
+            }, Promise.resolve())
+            .then(() => {
+                // 检查是否已取消
+                if (signal.aborted) {
+                    throw new Error('用户取消下载');
                 }
+
+                progressText.textContent = '正在生成压缩包...';
+                
+                return zip.generateAsync({
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 },
+                }, (metadata) => {
+                    // 检查是否已取消
+                    if (signal.aborted) {
+                        throw new Error('用户取消下载');
+                    }
+                    if (metadata.percent) {
+                        const progress = metadata.percent.toFixed(1);
+                        progressBar.style.width = progress + '%';
+                        progressText.textContent = `正在压缩: ${progress}%`;
+                    }
+                });
+            })
+            .then((content) => {
+                // 最后一次检查是否已取消
+                if (signal.aborted) {
+                    throw new Error('用户取消下载');
+                }
+
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = '水印图片_' + new Date().getTime() + '.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                
+                setTimeout(() => {
+                    progressElement.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    btn.classList.remove('loading');
+                    showToast('下载完成！');
+                }, 1000);
             });
-        })
-        .then((content) => {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(content);
-            link.download = '水印图片_' + new Date().getTime() + '.zip';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
+        };
+
+        // 开始下载并处理错误
+        startDownload().catch((error) => {
+            console.error('下载失败:', error);
             
-            // 完成后的清理
-            setTimeout(() => {
+            // 如果是用户取消，不显示错误
+            if (error.message === '用户取消下载') {
+                return;
+            }
+
+            progressText.textContent = '下载失败';
+            cancelBtn.style.display = 'none';
+            
+            if (retryCount < maxRetries) {
+                retryBtn.style.display = 'block';
+                retryBtn.onclick = () => {
+                    retryCount++;
+                    retryBtn.style.display = 'none';
+                    cancelBtn.style.display = 'block';
+                    startDownload();
+                };
+            } else {
                 progressElement.style.display = 'none';
-                progressBar.style.width = '0%';
                 btn.classList.remove('loading');
-                showToast('下载完成！');
-            }, 1000);
-        })
-        .catch((error) => {
-            console.error('生成 zip 文件失败:', error);
-            progressElement.style.display = 'none';
-            btn.classList.remove('loading');
-            showToast('下载失败，请重试');
+                showToast('下载失败，请重试');
+            }
         });
     }
 
@@ -2659,6 +2863,150 @@
             onError: (msg) => ui.showError(msg)
         });
     });
+
+    // 修改进度条HTML结构
+    function createProgressElement() {
+        const progressElement = document.createElement('div');
+        progressElement.id = 'downloadProgress';
+        progressElement.className = 'download-progress';
+        progressElement.innerHTML = `
+            <div class="progress-container">
+                <div class="progress-text">准备下载...</div>
+                <div class="progress-bar">
+                    <div class="progress-inner"></div>
+                </div>
+                <div class="progress-eta"></div>
+            </div>
+            <div class="progress-actions">
+                <button class="cancel-btn">
+                    <span class="btn-icon">✕</span>
+                    <span>取消</span>
+                </button>
+                <button class="retry-btn">
+                    <span class="btn-icon">↻</span>
+                    <span>重试</span>
+                </button>
+            </div>
+        `;
+        return progressElement;
+    }
+
+    // 将新样式添加到现有的 style 标签中
+    document.querySelector('style').textContent += `
+        .download-progress {
+            position: relative;
+            padding: 20px;
+            border-radius: 8px;
+            background: var(--box-bg);
+            margin-top: 15px;
+            display: none;
+            opacity: 1;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .progress-container {
+            flex: 1;
+            margin-right: 90px; /* 减小按钮预留空间 */
+            width: calc(100% - 90px); /* 确保固定宽度 */
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--progress-bg);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+
+        .progress-inner {
+            height: 100%;
+            background: var(--button-primary);
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 13px;
+            color: var(--text-color);
+            margin-bottom: 4px;
+        }
+
+        .progress-eta {
+            font-size: 12px;
+            color: var(--secondary-text);
+        }
+
+        .progress-actions {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 80px; /* 固定按钮容器宽度 */
+        }
+
+        .cancel-btn,
+        .retry-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%; /* 按钮填满容器 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .cancel-btn {
+            background: var(--button-delete);
+            color: white;
+        }
+
+        .retry-btn {
+            background: var(--button-primary);
+            color: white;
+            display: none;
+        }
+
+        .cancel-btn:hover,
+        .retry-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .download-progress {
+                padding: 15px;
+            }
+
+            .progress-container {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+            
+            .progress-actions {
+                position: static;
+                transform: none;
+                display: flex;
+                justify-content: stretch;
+                gap: 8px;
+                margin-top: 12px;
+                width: 100%;
+            }
+
+            .cancel-btn,
+            .retry-btn {
+                flex: 1;
+                width: 100%;
+                padding: 8px;
+            }
+        }
+    `;
 </script>
 
 </html>
