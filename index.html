@@ -184,30 +184,83 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 1000;
             display: none;
             justify-content: center;
             align-items: center;
-            transform: translateZ(0);
-            will-change: transform;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            will-change: opacity;
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+        }
+        
+        #previewModal.active {
+            opacity: 1;
         }
         
         #previewImage {
             max-width: 95%;
             max-height: 95%;
             object-fit: contain;
-            cursor: zoom-out;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
-            border-radius: 4px;
-            transform: scale(0.95) translateZ(0);
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform;
-            backface-visibility: hidden;
+            cursor: zoom-out;
         }
         
         #previewModal.active #previewImage {
-            transform: scale(1) translateZ(0);
+            transform: scale(1);
+        }
+        
+        #previewModal::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            margin: -20px 0 0 -20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        #previewModal.loading::before {
+            opacity: 1;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* 优化移动端体验 */
+        @media (max-width: 768px) {
+            #previewModal {
+                background: rgba(0, 0, 0, 0.95);
+            }
+            
+            #previewImage {
+                max-width: 100%;
+                max-height: 100%;
+            }
+        }
+        
+        /* 添加触摸设备的优化 */
+        @media (hover: none) {
+            #previewImage {
+                transform: scale(1);
+            }
+            
+            #previewModal.active #previewImage {
+                transform: scale(1);
+            }
         }
 
         .delete-btn {
@@ -896,6 +949,53 @@
             outline: none;
             box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
         }
+
+        /* 复制按钮样式 */
+        .copy-btn {
+            background: var(--button-primary);
+        }
+
+        .copy-btn:hover {
+            background: var(--button-hover);
+        }
+
+        /* Toast提示框样式 */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* 深色模式适配 */
+        [data-theme="dark"] #toast {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text-color);
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            #toast {
+                width: 80%;
+                text-align: center;
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -1161,11 +1261,7 @@
                 // 添加画布，并增加点击预览功能
                 canvas.style.cursor = 'zoom-in';
                 canvas.addEventListener('click', () => {
-                    previewImage.src = canvas.toDataURL('image/png');
-                    previewModal.style.display = 'flex';
-                    requestAnimationFrame(() => {
-                        previewModal.classList.add('active');
-                    });
+                    showPreview(canvas);
                 });
                 
                 // 先添加到数组中
@@ -1194,6 +1290,14 @@
                 buttonGroup.style.display = 'flex';
                 buttonGroup.style.gap = '5px';
                 
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'download-btn copy-btn';
+                copyBtn.textContent = '复制';
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation(); // 防止触发预览
+                    copyImageToClipboard(canvas);
+                };
+                
                 const downloadBtn = document.createElement('button');
                 downloadBtn.className = 'download-btn';
                 downloadBtn.textContent = '下载';
@@ -1218,6 +1322,7 @@
                     }
                 };
                 
+                buttonGroup.appendChild(copyBtn);
                 buttonGroup.appendChild(downloadBtn);
                 buttonGroup.appendChild(deleteBtn);
                 
@@ -1959,6 +2064,70 @@
             }
         });
     });
+
+    // 添加复制到剪贴板的函数
+    function copyImageToClipboard(canvas) {
+        canvas.toBlob(blob => {
+            try {
+                const item = new ClipboardItem({ "image/png": blob });
+                navigator.clipboard.write([item]).then(() => {
+                    // 显示成功提示
+                    showToast('图片已复制到剪贴板');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    showToast('复制失败，请重试');
+                });
+            } catch (err) {
+                console.error('复制失败:', err);
+                showToast('您的浏览器不支持此功能');
+            }
+        }, 'image/png');
+    }
+
+    // 添加提示框功能
+    function showToast(message) {
+        // 检查是否已存在toast元素
+        let toast = document.getElementById('toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toast';
+            document.body.appendChild(toast);
+        }
+        
+        // 设置消息并显示
+        toast.textContent = message;
+        toast.classList.add('show');
+        
+        // 3秒后隐藏
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    function showPreview(canvas) {
+        const modal = document.getElementById('previewModal');
+        const previewImg = document.getElementById('previewImage');
+        
+        // 添加加载指示器
+        modal.classList.add('loading');
+        modal.style.display = 'flex';
+        
+        // 使用 requestAnimationFrame 优化动画
+        requestAnimationFrame(() => {
+            // 预加载图片
+            const tempImg = new Image();
+            tempImg.onload = () => {
+                previewImg.src = tempImg.src;
+                modal.classList.remove('loading');
+                modal.classList.add('active');
+            };
+            
+            // 转换图片格式为 webp 以提高性能
+            canvas.toBlob(blob => {
+                tempImg.src = URL.createObjectURL(blob);
+            }, 'image/webp', 0.9);
+        });
+    }
 </script>
 
 </html>
