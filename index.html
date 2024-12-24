@@ -19,18 +19,11 @@
             background: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-            padding: 20px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
         }
 
         #graph {
             display: grid;
-            grid-gap: 20px;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            margin-top: 20px;
             grid-gap: 20px;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             margin-top: 20px;
@@ -122,16 +115,8 @@
             background: #2980b9;
         }
 
-        button:hover {
-            background: #2980b9;
-        }
-
         .image-container {
             position: relative;
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
             background: #f8f9fa;
             padding: 10px;
             border-radius: 8px;
@@ -141,8 +126,6 @@
         }
 
         .image-container:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
@@ -192,16 +175,6 @@
             transform: scale(1.02);
         }
         
-
-        .image-container canvas {
-            cursor: zoom-in;
-            transition: transform 0.2s;
-        }
-        
-        .image-container canvas:hover {
-            transform: scale(1.02);
-        }
-        
         #previewModal {
             position: fixed;
             top: 0;
@@ -216,8 +189,6 @@
             opacity: 0;
             transition: opacity 0.3s ease;
             will-change: opacity, transform;
-            -webkit-backdrop-filter: blur(5px);
-            backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
             backdrop-filter: blur(5px);
         }
@@ -356,21 +327,12 @@
             min-height: 200px;
         }
 
-        #graph:empty {
-            min-height: 200px;
-        }
-
         .upload-container {
             flex: 1;
         }
 
         .upload-box {
             position: relative;
-            min-height: 120px;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            background: #f8f9fa;
-            transition: all 0.3s ease;
             min-height: 120px;
             border: 2px dashed #ddd;
             border-radius: 8px;
@@ -383,8 +345,6 @@
         }
 
         .upload-box:hover {
-            border-color: #3498db;
-            background: #ebf5fb;
             border-color: #3498db;
             background: #ebf5fb;
         }
@@ -419,6 +379,8 @@
         .upload-progress {
             margin-top: 10px;
             display: none;
+            opacity: 1;
+            transition: opacity 0.3s ease;
         }
 
         .progress-bar {
@@ -432,59 +394,7 @@
             height: 100%;
             background: var(--button-primary);
             width: 0;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            font-size: 12px;
-            color: var(--secondary-text);
-            text-align: center;
-            margin-top: 5px;
-        }
-
-        .dragover {
-            border-color: #3498db;
-            background: #ebf5fb;
-            transform: scale(1.02);
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-        }
-
-        .delete-all-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .delete-all-btn:hover {
-            background: #c0392b;
-        }
-
-        .upload-progress {
-            margin-top: 10px;
-            display: none;
-        }
-
-        .progress-bar {
-            height: 4px;
-            background: var(--progress-bg);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .progress-inner {
-            height: 100%;
-            background: var(--button-primary);
-            width: 0;
-            transition: width 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         .progress-text {
@@ -684,26 +594,6 @@
             background: var(--button-delete-hover);
         }
 
-        button:hover {
-            background: var(--button-hover);
-        }
-
-        .delete-btn {
-            background: var(--button-delete);
-        }
-
-        .delete-btn:hover {
-            background: var(--button-delete-hover);
-        }
-
-        .delete-all-btn {
-            background: var(--button-delete);
-        }
-
-        .delete-all-btn:hover {
-            background: var(--button-delete-hover);
-        }
-
         .image-info {
             color: var(--secondary-text);
         }
@@ -717,17 +607,8 @@
             background: var(--upload-hover-bg);
         }
 
-        .dragover {
-            border-color: var(--link-color);
-            background: var(--upload-hover-bg);
-        }
-
         canvas {
             border-color: var(--border-color);
-        }
-
-        canvas:hover {
-            border-color: var(--link-color);
         }
 
         canvas:hover {
@@ -773,10 +654,6 @@
         .drag-area.dragover {
             border-color: var(--link-color);
             background: var(--drag-hover-bg);
-        }
-
-        canvas {
-            border: 2px dashed var(--canvas-border);
         }
 
         canvas {
@@ -842,8 +719,6 @@
         /* 移动端基础样式优化 */
         @media (max-width: 768px) {
             #container {
-                margin: 10px;
-                padding: 15px;
                 margin: 10px;
                 padding: 15px;
             }
@@ -963,15 +838,11 @@
             align-items: center;
             justify-content: center;
             padding: 8px 16px;
-            padding: 8px 16px;
             border: none;
-            border-radius: 6px;
             border-radius: 6px;
             font-size: 14px;
             font-weight: 500;
-            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
             transition: all 0.2s ease;
             gap: 6px;
             min-height: 36px;
@@ -983,13 +854,10 @@
         .btn-primary {
             background: var(--button-primary);
             box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
-            box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
         }
 
         .btn-primary:hover {
             background: var(--button-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
         }
@@ -1114,25 +982,6 @@
             background: var(--button-hover);
         }
 
-        .font-select-wrapper select:hover {
-            border-color: var(--button-primary);
-        }
-
-        .font-select-wrapper select:focus {
-            border-color: var(--button-primary);
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-        }
-
-        /* 复制按钮样式 */
-        .copy-btn {
-            background: var(--button-primary);
-        }
-
-        .copy-btn:hover {
-            background: var(--button-hover);
-        }
-
         /* Toast提示框样式 */
         #toast {
             position: fixed;
@@ -1187,18 +1036,8 @@
             justify-content: space-between;
             gap: 8px;
             width: 100%;
-        /* 修改按钮组样式 */
-        .button-group-container {
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            width: 100%;
         }
 
-        .button-group-container .download-btn {
-            flex: 1;
-            min-width: 0;
-            padding: 6px;
         .button-group-container .download-btn {
             flex: 1;
             min-width: 0;
@@ -1451,7 +1290,7 @@
                 // 添加文件大小信息
                 const loaded = (e.loaded / 1024 / 1024).toFixed(1);
                 const total = (e.total / 1024 / 1024).toFixed(1);
-                progressText.textContent = `读取进度: ${percentage}% (${loaded}MB/${total}MB)`;
+                progressText.textContent = `正在处理 ${file.name}: ${percentage}% (${loaded}MB/${total}MB)`;
                 
                 // 添加进度条颜色渐变
                 progressBar.style.background = `linear-gradient(90deg, 
@@ -1551,11 +1390,17 @@
                 graph.appendChild(container);
                 graph.classList.remove('empty');
                 
-                // 更新进度显示
                 progressText.textContent = `${file.name} 处理完成`;
+                progressBar.style.background = 'var(--button-primary)';
+                
+                // 平滑过渡后隐藏进度条
                 setTimeout(() => {
-                    uploadProgress.style.display = 'none';
-                    progressBar.style.width = '0%';
+                    uploadProgress.style.opacity = '0';
+                    setTimeout(() => {
+                        uploadProgress.style.display = 'none';
+                        uploadProgress.style.opacity = '1';
+                        progressBar.style.width = '0%';
+                    }, 300);
                 }, 1000);
             };
             
@@ -1563,8 +1408,12 @@
                 progressText.textContent = `${file.name} 处理失败`;
                 progressBar.style.background = 'var(--button-delete)';
                 setTimeout(() => {
-                    uploadProgress.style.display = 'none';
-                    progressBar.style.width = '0%';
+                    uploadProgress.style.opacity = '0';
+                    setTimeout(() => {
+                        uploadProgress.style.display = 'none';
+                        uploadProgress.style.opacity = '1';
+                        progressBar.style.width = '0%';
+                    }, 300);
                 }, 2000);
             };
             
@@ -1575,8 +1424,12 @@
             progressText.textContent = `${file.name} 读取失败`;
             progressBar.style.background = 'var(--button-delete)';
             setTimeout(() => {
-                uploadProgress.style.display = 'none';
-                progressBar.style.width = '0%';
+                uploadProgress.style.opacity = '0';
+                setTimeout(() => {
+                    uploadProgress.style.display = 'none';
+                    uploadProgress.style.opacity = '1';
+                    progressBar.style.width = '0%';
+                }, 300);
             }, 2000);
         };
         
