@@ -1201,28 +1201,57 @@
         textCtx.fillStyle = makeStyle();
         
         const text = configInputSetting.text.value;
-        const textWidth = textCtx.measureText(text).width;
-        const textHeight = textSize;
-        const margin = textCtx.measureText('啊').width;
-        const angle = parseFloat(configInputSetting.rotate.value);
+        const maxWidth = Math.min(canvas.width * 0.8, 500); // 设置最大宽度
         
-        // 绘制单个水印的函数
+        // 文本换行处理函数
+        const wrapText = (text, maxWidth) => {
+            const words = text.split('');
+            const lines = [];
+            let currentLine = words[0] || '';
+            
+            for(let i = 1; i < words.length; i++) {
+                const width = textCtx.measureText(currentLine + words[i]).width;
+                if (width < maxWidth) {
+                    currentLine += words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        };
+        
+        const lines = wrapText(text, maxWidth);
+        const lineHeight = textSize * 1.2; // 行高为字体大小的1.2倍
+        const totalHeight = lineHeight * lines.length;
+        
+        // 修改绘制单个水印的函数
         const drawSingleWatermark = (x, y, angle) => {
             textCtx.save();
             textCtx.translate(x, y);
             textCtx.rotate(angle * Math.PI / 180);
-            textCtx.fillText(text, -textWidth/2, textHeight/2);
+            
+            // 绘制多行文本
+            lines.forEach((line, index) => {
+                const lineY = (index - (lines.length - 1) / 2) * lineHeight;
+                const lineWidth = textCtx.measureText(line).width;
+                textCtx.fillText(line, -lineWidth/2, lineY + textSize/2);
+            });
+            
             textCtx.restore();
         };
 
         if (pattern === 'tile') {
-            // 平铺模式 - 保持原有的平铺逻辑
+            // 平铺模式
             textCtx.save();
             textCtx.translate(canvas.width/2, canvas.height/2);
+            const angle = parseFloat(configInputSetting.rotate.value);
             textCtx.rotate(angle * Math.PI / 180);
             
-            const xStep = textWidth + margin;
-            const yStep = configInputSetting.space.value * textSize;
+            const maxLineWidth = Math.max(...lines.map(line => textCtx.measureText(line).width));
+            const xStep = maxLineWidth + textCtx.measureText('啊').width;
+            const yStep = configInputSetting.space.value * (totalHeight + textSize);
             const rectWidth = diagonal;
             const rectHeight = diagonal;
             const startX = -rectWidth/2;
@@ -1235,14 +1264,18 @@
                 for (let j = 0; j <= rows; j++) {
                     const x = startX + i * xStep;
                     const y = startY + j * yStep;
-                    textCtx.fillText(text, x, y);
+                    lines.forEach((line, index) => {
+                        const lineY = y + (index - (lines.length - 1) / 2) * lineHeight;
+                        const lineWidth = textCtx.measureText(line).width;
+                        textCtx.fillText(line, x - lineWidth/2, lineY + textSize/2);
+                    });
                 }
             }
             textCtx.restore();
         } else {
             // 单个水印或自定义数量模式
             const positions = [];
-            const padding = Math.min(canvas.width, canvas.height) * 0.1; // 边距为画布较小边的10%
+            const padding = Math.min(canvas.width, canvas.height) * 0.1;
             
             if (pattern === 'single' || count === 1) {
                 // 单个水印位置计算
@@ -1251,16 +1284,16 @@
                         positions.push([canvas.width/2, canvas.height/2]);
                         break;
                     case 'top-left':
-                        positions.push([padding + textWidth/2, padding + textHeight/2]);
+                        positions.push([padding + maxLineWidth/2, padding + totalHeight/2]);
                         break;
                     case 'top-right':
-                        positions.push([canvas.width - padding - textWidth/2, padding + textHeight/2]);
+                        positions.push([canvas.width - padding - maxLineWidth/2, padding + totalHeight/2]);
                         break;
                     case 'bottom-left':
-                        positions.push([padding + textWidth/2, canvas.height - padding - textHeight/2]);
+                        positions.push([padding + maxLineWidth/2, canvas.height - padding - totalHeight/2]);
                         break;
                     case 'bottom-right':
-                        positions.push([canvas.width - padding - textWidth/2, canvas.height - padding - textHeight/2]);
+                        positions.push([canvas.width - padding - maxLineWidth/2, canvas.height - padding - totalHeight/2]);
                         break;
                 }
             } else {
@@ -1286,7 +1319,7 @@
                 }
             }
             
-            // 绘制所有水印
+            const angle = parseFloat(configInputSetting.rotate.value);
             positions.forEach(([x, y]) => {
                 drawSingleWatermark(x, y, angle);
             });
