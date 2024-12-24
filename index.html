@@ -1605,22 +1605,26 @@
             
             if (pattern === 'single' || count === 1) {
                 // 单个水印位置计算
+                const maxLineWidth = Math.max(...lines.map(line => textCtx.measureText(line).width));
+                
                 switch(position) {
                     case 'center':
                         positions.push([canvas.width/2, canvas.height/2]);
                         break;
                     case 'top-left':
-                        positions.push([padding + maxLineWidth/2, padding + totalHeight/2]);
+                        positions.push([maxLineWidth/2 + padding, totalHeight/2 + padding]);
                         break;
                     case 'top-right':
-                        positions.push([canvas.width - padding - maxLineWidth/2, padding + totalHeight/2]);
+                        positions.push([canvas.width - maxLineWidth/2 - padding, totalHeight/2 + padding]);
                         break;
                     case 'bottom-left':
-                        positions.push([padding + maxLineWidth/2, canvas.height - padding - totalHeight/2]);
+                        positions.push([maxLineWidth/2 + padding, canvas.height - totalHeight/2 - padding]);
                         break;
                     case 'bottom-right':
-                        positions.push([canvas.width - padding - maxLineWidth/2, canvas.height - padding - totalHeight/2]);
+                        positions.push([canvas.width - maxLineWidth/2 - padding, canvas.height - totalHeight/2 - padding]);
                         break;
+                    default:
+                        positions.push([canvas.width/2, canvas.height/2]); // 默认居中
                 }
             } else {
                 // 自定义数量水印的均匀分布
