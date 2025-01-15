@@ -1159,6 +1159,46 @@
                 padding: 8px;
             }
         }
+
+        .preview-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 20px 15px;
+            cursor: pointer;
+            font-size: 20px;
+            opacity: 0;
+            transition: opacity 0.3s, background 0.3s;
+        }
+
+        #previewModal:hover .preview-nav {
+            opacity: 0.7;
+        }
+
+        .preview-nav:hover {
+            opacity: 1 !important;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .preview-nav.prev {
+            left: 20px;
+            border-radius: 0 3px 3px 0;
+        }
+
+        .preview-nav.next {
+            right: 20px;
+            border-radius: 3px 0 0 3px;
+        }
+
+        @media (max-width: 768px) {
+            .preview-nav {
+                padding: 15px 10px;
+                font-size: 16px;
+            }
+        }
     </style>
     <script>
         // 尝试加载本地 jszip
@@ -2595,7 +2635,8 @@
         }, 3000);
     }
 
-    function showPreview(canvas) {
+    // 修改 showPreview 函数，优化性能
+    function showPreview(canvas, direction = null) {
         const modal = document.getElementById('previewModal');
         const previewImg = document.getElementById('previewImage');
         
@@ -2603,43 +2644,202 @@
         modal.classList.add('loading');
         modal.style.display = 'flex';
         
-        // 创建低质量预览图
-        const thumbnailCanvas = document.createElement('canvas');
-        const maxThumbnailSize = 800; // 缩略图最大尺寸
-        const scale = Math.min(1, maxThumbnailSize / Math.max(canvas.width, canvas.height));
-        thumbnailCanvas.width = canvas.width * scale;
-        thumbnailCanvas.height = canvas.height * scale;
-        
-        const ctx = thumbnailCanvas.getContext('2d');
-        ctx.drawImage(canvas, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
-        
-        // 先显示缩略图
-        previewImg.src = thumbnailCanvas.toDataURL('image/jpeg', 0.5);
-        previewImg.classList.add('blur'); // 添加模糊效果
-        
-        // 使用 requestAnimationFrame 确保过渡动画流畅
-        requestAnimationFrame(() => {
-            modal.classList.add('active');
+        // 存储当前预览的画布索引
+        const currentIndex = allCanvas.findIndex(item => item.canvas === canvas);
+        previewModal.dataset.currentCanvas = currentIndex;
+
+        // 预加载相邻图片
+        const preloadAdjacentImages = () => {
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : allCanvas.length - 1;
+            const nextIndex = currentIndex < allCanvas.length - 1 ? currentIndex + 1 : 0;
             
-            // 加载高质量图片
-            canvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                const highQualityImg = new Image();
+            [prevIndex, nextIndex].forEach(index => {
+                const adjacentCanvas = allCanvas[index].canvas;
+                if (adjacentCanvas) {
+                    const link = document.createElement('link');
+                    link.rel = 'preload';
+                    link.as = 'image';
+                    link.href = adjacentCanvas.toDataURL('image/jpeg', 0.5);
+                    document.head.appendChild(link);
+                    setTimeout(() => document.head.removeChild(link), 1000);
+                }
+            });
+        };
+
+        // 优化过渡动画
+        const applyTransition = () => {
+            if (direction) {
+                previewImg.style.transition = 'transform 0.2s ease-out';
+                previewImg.style.transform = `translateX(${direction === 'prev' ? '100%' : '-100%'})`;
                 
-                highQualityImg.onload = () => {
-                    previewImg.src = url;
-                    previewImg.classList.remove('blur');
-                    modal.classList.remove('loading');
+                requestAnimationFrame(() => {
+                    previewImg.style.transform = 'translateX(0)';
+                });
+            }
+        };
+
+        // 使用 createImageBitmap 优化图片处理
+        createImageBitmap(canvas)
+            .then(bitmap => {
+                const thumbnailCanvas = document.createElement('canvas');
+                const maxThumbnailSize = 800;
+                const scale = Math.min(1, maxThumbnailSize / Math.max(canvas.width, canvas.height));
+                thumbnailCanvas.width = canvas.width * scale;
+                thumbnailCanvas.height = canvas.height * scale;
+                
+                const ctx = thumbnailCanvas.getContext('2d');
+                ctx.drawImage(bitmap, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+                
+                // 先显示缩略图
+                previewImg.src = thumbnailCanvas.toDataURL('image/jpeg', 0.5);
+                previewImg.classList.add('blur');
+                
+                // 应用过渡动画
+                applyTransition();
+                
+                requestAnimationFrame(() => {
+                    modal.classList.add('active');
                     
-                    // 清理缩略图
-                    URL.revokeObjectURL(thumbnailCanvas.toDataURL());
-                    thumbnailCanvas.remove();
-                };
-                
-                highQualityImg.src = url;
-            }, 'image/jpeg', 0.92);
-        });
+                    // 使用 OffscreenCanvas 进行高质量渲染（如果支持）
+                    const renderHighQuality = () => {
+                        if (typeof OffscreenCanvas !== 'undefined') {
+                            const offscreen = new OffscreenCanvas(canvas.width, canvas.height);
+                            const octx = offscreen.getContext('2d');
+                            octx.drawImage(canvas, 0, 0);
+                            return offscreen.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
+                        } else {
+                            return new Promise(resolve => {
+                                canvas.toBlob(resolve, 'image/jpeg', 0.92);
+                            });
+                        }
+                    };
+
+                    renderHighQuality().then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const highQualityImg = new Image();
+                        
+                        highQualityImg.onload = () => {
+                            previewImg.src = url;
+                            previewImg.classList.remove('blur');
+                            modal.classList.remove('loading');
+                            
+                            // 清理资源
+                            bitmap.close();
+                            thumbnailCanvas.remove();
+                            URL.revokeObjectURL(url);
+                            
+                            // 预加载相邻图片
+                            preloadAdjacentImages();
+                        };
+                        
+                        highQualityImg.src = url;
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('图片处理失败:', error);
+                modal.classList.remove('loading');
+                showToast('图片加载失败，请重试');
+            });
     }
+
+    // 优化图片切换函数
+    function switchPreviewImage(direction) {
+        const currentIndex = parseInt(previewModal.dataset.currentCanvas);
+        if (isNaN(currentIndex) || allCanvas.length <= 1) return;
+
+        let nextIndex;
+        if (direction === 'prev') {
+            nextIndex = currentIndex > 0 ? currentIndex - 1 : allCanvas.length - 1;
+        } else {
+            nextIndex = currentIndex < allCanvas.length - 1 ? currentIndex + 1 : 0;
+        }
+
+        showPreview(allCanvas[nextIndex].canvas, direction);
+    }
+
+    // 修改键盘事件监听中的图片切换部分
+    document.addEventListener('keydown', (e) => {
+        if (previewModal.style.display === 'flex') {
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                switchPreviewImage('prev');
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                switchPreviewImage('next');
+            }
+        }
+    });
+
+    // 添加触摸滑动支持
+    let touchStartX = 0;
+    previewModal.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+    });
+
+    previewModal.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const diff = touchEndX - touchStartX;
+        
+        if (Math.abs(diff) > 50) { // 最小滑动距离
+            if (diff > 0) {
+                switchPreviewImage('prev');
+            } else {
+                switchPreviewImage('next');
+            }
+        }
+    });
+
+    // 添加预览导航按钮（可选）
+    const navigationHtml = `
+        <button class="preview-nav prev" onclick="switchPreviewImage('prev')">&lt;</button>
+        <button class="preview-nav next" onclick="switchPreviewImage('next')">&gt;</button>
+    `;
+
+    previewModal.insertAdjacentHTML('beforeend', navigationHtml);
+
+    // 添加导航按钮样式
+    document.querySelector('style').textContent += `
+        .preview-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 20px 15px;
+            cursor: pointer;
+            font-size: 20px;
+            opacity: 0;
+            transition: opacity 0.3s, background 0.3s;
+        }
+
+        #previewModal:hover .preview-nav {
+            opacity: 0.7;
+        }
+
+        .preview-nav:hover {
+            opacity: 1 !important;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .preview-nav.prev {
+            left: 20px;
+            border-radius: 0 3px 3px 0;
+        }
+
+        .preview-nav.next {
+            right: 20px;
+            border-radius: 3px 0 0 3px;
+        }
+
+        @media (max-width: 768px) {
+            .preview-nav {
+                padding: 15px 10px;
+                font-size: 16px;
+            }
+        }
+    `;
 
     // 图片处理相关配置
     const ImageConfig = {
@@ -3033,6 +3233,121 @@
             }
         }
     `;
+
+    // 添加键盘快捷键支持
+    document.addEventListener('keydown', (e) => {
+        // 如果正在输入文本,不触发快捷键
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        // Ctrl/Command + D: 下载全部图片
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+            e.preventDefault();
+            downloadAll();
+        }
+
+        // Delete: 删除全部图片
+        if (e.key === 'Delete') {
+            e.preventDefault();
+            deleteAll();
+        }
+
+        // Ctrl/Command + V: 触发粘贴
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+            // 已有粘贴事件处理,无需额外处理
+            return;
+        }
+
+        // Escape: 关闭预览
+        if (e.key === 'Escape' && previewModal.style.display === 'flex') {
+            e.preventDefault();
+            closePreview();
+        }
+
+        // 左右方向键: 在预览模式下切换图片
+        if (previewModal.style.display === 'flex' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+            e.preventDefault();
+            const currentCanvas = allCanvas.find(item => 
+                item.canvas.toDataURL() === previewImage.src || 
+                URL.createObjectURL(dataURItoBlob(item.canvas.toDataURL())) === previewImage.src
+            );
+            if (currentCanvas) {
+                const currentIndex = allCanvas.indexOf(currentCanvas);
+                let nextIndex;
+                if (e.key === 'ArrowLeft') {
+                    nextIndex = currentIndex > 0 ? currentIndex - 1 : allCanvas.length - 1;
+                } else {
+                    nextIndex = currentIndex < allCanvas.length - 1 ? currentIndex + 1 : 0;
+                }
+                showPreview(allCanvas[nextIndex].canvas);
+            }
+        }
+
+        // 数字键1-9: 快速调整水印大小
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && /^[1-9]$/.test(e.key)) {
+            e.preventDefault();
+            const sizeInput = document.getElementById('size');
+            const newSize = parseFloat(e.key) / 3; // 将1-9映射到0.33-3的范围
+            sizeInput.value = newSize;
+            sizeInput.dispatchEvent(new Event('input'));
+        }
+
+        // Ctrl/Command + Z: 撤销最后一次删除
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault();
+            if (lastDeletedCanvas) {
+                const container = document.createElement('div');
+                container.className = 'image-container';
+                container.appendChild(lastDeletedCanvas.canvas);
+                graph.appendChild(container);
+                allCanvas.push(lastDeletedCanvas);
+                lastDeletedCanvas = null;
+                showToast('已恢复上一次删除的图片');
+            }
+        }
+    });
+
+    // 添加变量用于存储最后删除的图片
+    let lastDeletedCanvas = null;
+
+    // 修改删除按钮的点击处理函数
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'download-btn delete-btn';
+    deleteBtn.textContent = '删除';
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        const index = allCanvas.findIndex(item => item.canvas === canvas);
+        if (index > -1) {
+            lastDeletedCanvas = allCanvas[index]; // 保存被删除的图片
+            allCanvas.splice(index, 1);
+        }
+        container.remove();
+        
+        if (graph.children.length === 0) {
+            graph.classList.add('empty');
+        }
+        showToast('图片已删除，按 Ctrl+Z 可恢复');
+    };
+
+    // 添加键盘快捷键提示到页面上
+    const shortcutsHtml = `
+    <div class="shortcuts-info" style="margin-top: 20px; color: var(--secondary-text); font-size: 14px;">
+        <p>键盘快捷键:</p>
+        <ul style="list-style: none; padding-left: 0; columns: 2;">
+            <li>⌘/Ctrl + D: 下载全部图片</li>
+            <li>⌘/Ctrl + V: 粘贴图片</li>
+            <li>Delete: 删除全部图片</li>
+            <li>⌘/Ctrl + Z: 撤销删除</li>
+            <li>Esc: 关闭预览</li>
+            <li>←/→: 预览时切换图片</li>
+            <li>1-9: 快速调整水印大小</li>
+        </ul>
+    </div>
+    `;
+
+    // 将快捷键说明添加到页面中
+    document.querySelector('article').insertAdjacentHTML('afterend', shortcutsHtml);
 </script>
 
 </html>
