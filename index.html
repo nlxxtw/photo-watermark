@@ -1199,6 +1199,42 @@
                 font-size: 16px;
             }
         }
+
+        .template-buttons {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .template-btn {
+            background: var(--box-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .template-btn:hover {
+            background: var(--button-primary);
+            color: white;
+            border-color: var(--button-primary);
+        }
+
+        @media (max-width: 768px) {
+            .template-buttons {
+                margin-top: 8px;
+                gap: 6px;
+            }
+
+            .template-btn {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+        }
     </style>
     <script>
         // 尝试加载本地 jszip
@@ -3348,6 +3384,74 @@
 
     // 将快捷键说明添加到页面中
     document.querySelector('article').insertAdjacentHTML('afterend', shortcutsHtml);
+
+    // 在 <input id="text"> 后面添加模板选择按钮组
+    const textInput = document.querySelector('#text').parentElement;
+    const templateHtml = `
+    <div class="template-buttons" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
+        <button class="template-btn" data-text="仅供办理XX使用，他用无效">办事模板</button>
+        <button class="template-btn" data-text="仅用于XX认证，他用无效">认证模板</button>
+        <button class="template-btn" data-text="复印件与原件相符">复印核验</button>
+        <button class="template-btn" data-text="该证件仅供XX查看，不得他用">证件模板</button>
+        <button class="template-btn" data-text="内部资料，请勿外传">内部资料</button>
+        <button class="template-btn" data-text="版权所有，严禁外传">版权声明</button>
+    </div>
+    `;
+
+    textInput.insertAdjacentHTML('beforeend', templateHtml);
+
+    // 添加模板按钮样式
+    document.querySelector('style').textContent += `
+        .template-buttons {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .template-btn {
+            background: var(--box-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .template-btn:hover {
+            background: var(--button-primary);
+            color: white;
+            border-color: var(--button-primary);
+        }
+
+        @media (max-width: 768px) {
+            .template-buttons {
+                margin-top: 8px;
+                gap: 6px;
+            }
+
+            .template-btn {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+        }
+    `;
+
+    // 添加模板按钮点击事件
+    document.querySelectorAll('.template-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const text = btn.dataset.text;
+            const textInput = document.getElementById('text');
+            textInput.value = text;
+            textInput.dispatchEvent(new Event('input')); // 触发更新水印
+            
+            // 添加点击反馈
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => btn.style.transform = '', 100);
+        });
+    });
 </script>
 
 </html>
